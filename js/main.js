@@ -409,22 +409,7 @@
 
   /* 若玩家落在不可行走的格子上（例如墙里），就近吸附到可行走位置 */
   function snapPlayerWalkable() {
-    const p = Game.entities.player;
-    if (!p) return;
-    const t = Game.world.tileAt(p.x, p.y);
-    if (Game.world.canWalk(t.tx, t.ty)) return;
-    for (let r = 1; r < 60; r++) {
-      for (let dy = -r; dy <= r; dy++) {
-        for (let dx = -r; dx <= r; dx++) {
-          const tx = t.tx + dx, ty = t.ty + dy;
-          if (Game.world.inBounds(tx, ty) && Game.world.canWalk(tx, ty)) {
-            p.x = (tx + 0.5) * Game.world.TILE;
-            p.y = (ty + 0.5) * Game.world.TILE;
-            return;
-          }
-        }
-      }
-    }
+    Game.entities.snapToWalkable && Game.entities.snapToWalkable();
   }
 
   function transitionZone(f) {

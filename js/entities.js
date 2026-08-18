@@ -201,6 +201,7 @@
     player.outside = { x: player.x, y: player.y };
     player.inCave = false;
     player.pounceHit = null;
+    snapToWalkable(player);   /* 放置后立刻确保可行走 */
 
     const cfg = ZONE_SPAWN[zone] || ZONE_SPAWN[0];
     for (const type in cfg.prey) {
@@ -588,6 +589,26 @@
     return true;
   }
 
+  /* 兜底：把实体就近吸附到可行走格（跨区域/存档异常时绝不会卡在墙里） */
+  function snapToWalkable(e) {
+    e = e || player;
+    if (!e) return;
+    const t = W.tileAt(e.x, e.y);
+    if (W.canWalk(t.tx, t.ty)) return;
+    for (let r = 1; r < 80; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          const tx = t.tx + dx, ty = t.ty + dy;
+          if (W.inBounds(tx, ty) && W.canWalk(tx, ty)) {
+            e.x = (tx + 0.5) * W.TILE;
+            e.y = (ty + 0.5) * W.TILE;
+            return;
+          }
+        }
+      }
+    }
+  }
+
   function moveEntity(e, dx, dy, ignoreTerrain) {
     const r = e.r || 8;
     if (ignoreTerrain) {
@@ -684,6 +705,17 @@
       p.vx = p.vy = 0;
     }
     p.tallGrass = W.terrainAt(p.x, p.y) === W.T.GRASS;
+
+    /* 每 0.5s 兜底检查：万一落在不可走格自动吸附（杜绝卡死） */
+    p.autoSnapT = (p.autoSnapT || 0) - dt;
+    if (p.autoSnapT <= 0) {
+      p.autoSnapT = 0.5;
+      const tt = W.tileAt(p.x, p.y);
+      if (!W.canWalk(tt.tx, tt.ty)) {
+        snapToWalkable(p);
+        Game.ui.log('🐾 你踉跄了一下，站稳了脚跟。', 'info');
+      }
+    }
 
     /* stamina: wet fur slows regen; Swift Paws speeds it up; Camo cheapens sneaking */
     const wetPenalty = p.stats.wetness > 40 ? 1 - (p.stats.wetness - 40) / 100 * 0.7 : 1;
@@ -1464,7 +1496,7 @@
     summonCompanion,
     damagePlayer, enterCave, exitCave,
     xpToLevel, addXp, learnSkill, hasSkill, grantSkillBook, grantSkillPoint, hitBoss, recalcMaxStats,
-    pounceDmg, critChance,
+    pounceDmg, critChance, snapToWalkable,
     SKILL_NAMES,
   };
 })();

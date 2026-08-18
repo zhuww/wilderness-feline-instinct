@@ -673,6 +673,25 @@
     ctx.ellipse(0, 6.5 + bob * 0.4, 7.5, 5.6, 0, 0, U.TAU);
     ctx.fill();
 
+    /* 树叶雨帽＝叶披风：盖在背上（头压住领口） */
+    if (cfg.hat) {
+      ctx.fillStyle = '#4f9c46';
+      ctx.beginPath(); ctx.ellipse(0, 5, 13, 11, 0, 0, U.TAU); ctx.fill();
+      ctx.fillStyle = '#3f7a35';
+      ctx.beginPath(); ctx.ellipse(0, 4, 11, 9.2, 0, 0, U.TAU); ctx.fill();
+      /* 下摆叶片 */
+      ctx.fillStyle = '#5cae4a';
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath(); ctx.ellipse(i * 5, 14.5 + Math.abs(i) * 0.8, 3.8, 2.1, 0, 0, U.TAU); ctx.fill();
+      }
+      /* 肩部叶片 */
+      ctx.beginPath(); ctx.ellipse(-8.5, 1.5, 4.6, 2.4, -0.5, 0, U.TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(8.5, 1.5, 4.6, 2.4, 0.5, 0, U.TAU); ctx.fill();
+      /* 高光 */
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      ctx.beginPath(); ctx.ellipse(-3, 0, 5, 3, -0.3, 0, U.TAU); ctx.fill();
+    }
+
     /* head */
     const hx = 0;
     const hy = -14 + (state === 'sneak' ? 1.5 : 0);
@@ -724,19 +743,6 @@
     /* eyes */
     drawEye(ctx, hx - 4.4, hy - 0.8, cfg);
     drawEye(ctx, hx + 4.4, hy - 0.8, cfg);
-
-    /* 树叶雨帽：戴在头顶 */
-    if (cfg.hat) {
-      ctx.fillStyle = '#4f9c46';
-      ctx.beginPath(); ctx.arc(hx, hy - 4.5, 10.5, Math.PI * 0.85, Math.PI * 2.15); ctx.fill();   /* 帽檐 */
-      ctx.fillStyle = '#3f7a35';
-      ctx.beginPath(); ctx.arc(hx, hy - 9.5, 8.5, Math.PI * 0.9, Math.PI * 2.1); ctx.fill();      /* 帽顶 */
-      ctx.fillStyle = '#5cae4a';
-      ctx.beginPath(); ctx.ellipse(hx - 5, hy - 15.5, 5, 2.4, -0.5, 0, U.TAU); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(hx + 5, hy - 14.5, 5, 2.2, 0.4, 0, U.TAU); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.beginPath(); ctx.arc(hx - 2, hy - 12, 3, 0, U.TAU); ctx.fill();
-    }
 
     /* 猫牙项链：细绳 + 白色尖牙吊坠 */
     if (cfg.necklace) {
