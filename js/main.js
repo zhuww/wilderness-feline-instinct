@@ -413,11 +413,6 @@
   }
 
   function transitionZone(f) {
-    const p = Game.entities.player;
-    if (p.level < f.minLevel) {
-      Game.ui.log(`⛔ 需要 ${f.minLevel} 级才能进入【${f.label}】（当前 ${p.level} 级）`, 'danger');
-      return;
-    }
     const to = f.to;
     const from = state.zone;
     Game.ui.fadeTo(1, () => {

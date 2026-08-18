@@ -562,7 +562,7 @@
       ctx.fillStyle = 'rgba(8,8,18,0.7)';
       rr(ctx, fx - 48, fy - 30, 96, 15, 7); ctx.fill();
       ctx.fillStyle = col;
-      ctx.fillText('⛩ ' + (f.label || '') + ' Lv' + f.minLevel, fx, fy - 19);
+      ctx.fillText('⛩ ' + (f.label || ''), fx, fy - 19);
     } else if (f.type === 'trashcan') {
       /* 小型垃圾桶 */
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -1503,7 +1503,7 @@
       const fx = (f.tx + 0.5) * W.TILE - cam.x;
       const fy = (f.ty + 0.5) * W.TILE - cam.y - 34;
       if (fx > -50 && fx < view.w + 50 && fy > -50 && fy < view.h + 50) {
-        const lbl = f.type === 'gate' ? ('前往' + f.label + '(Lv' + f.minLevel + ')')
+        const lbl = f.type === 'gate' ? ('前往' + f.label)
           : f.type === 'berry' ? '吃浆果'
             : f.type === 'catnip' ? '拾取'
               : f.type === 'herbs' ? '拾取'
