@@ -1,0 +1,7 @@
+# runtime logs
+server.log
+server.err.log
+*.log
+
+# node
+node_modules/

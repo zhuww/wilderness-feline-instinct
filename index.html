@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>荒野本能：暹罗猫求生</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* ---- fallback / core styles (keep the UI usable even offline) ---- */
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #0a1020; }
+  * { -webkit-tap-highlight-color: transparent; }
+  canvas { display: block; touch-action: none; }
+  .hud-panel { background: rgba(8,10,22,0.62); border: 1px solid rgba(255,255,255,0.10); backdrop-filter: blur(8px); box-shadow: 0 6px 24px rgba(0,0,0,0.35); }
+  .meter { display: flex; align-items: center; gap: 5px; }
+  .meter-icon { font-size: 13px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.6)); }
+  .meter-track { flex: 1; height: 8px; border-radius: 9999px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.12); overflow: hidden; }
+  .meter-fill { display: block; height: 100%; border-radius: 9999px; transition: width 0.22s ease; background: linear-gradient(90deg, #34d399, #10b981); }
+  .meter-label { font-size: 9px; color: rgba(255,255,255,0.55); text-align: center; margin-top: 2px; letter-spacing: 0.05em; }
+  .log-toast { transition: opacity 0.35s ease, transform 0.35s ease; }
+  .tab { padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: all .15s ease; }
+  .tab-on { background: rgba(251,191,36,0.22); color: #fde68a; border-color: rgba(251,191,36,0.4); }
+  .modal-panel { background: rgba(14,16,30,0.92); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(14px); box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
+  .act-btn { width: 58px; height: 58px; border-radius: 9999px; font-size: 22px; background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); box-shadow: 0 4px 14px rgba(0,0,0,0.35); transition: transform .08s ease, background .15s ease; }
+  .act-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.25); }
+  #btn-sneak { width: auto; height: 38px; padding: 0 14px; font-size: 12px; border-radius: 9999px; gap: 6px; }
+  #btn-sneak.active { background: rgba(52,211,153,0.4); border-color: #34d399; color: #d1fae5; }
+  .cat-btn { padding: 6px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: all .12s ease; white-space: nowrap; }
+  .cat-btn:hover:not(:disabled) { background: rgba(255,255,255,0.28); }
+  .cat-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .cat-btn[data-action="adopt"]:not(:disabled) { background: rgba(244,114,182,0.4); border-color: rgba(244,114,182,0.65); }
+  .cat-btn[data-action="adopt"]:not(:disabled):hover { background: rgba(244,114,182,0.6); }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  /* minimal Tailwind fallbacks so the layout holds without the CDN */
+  .hidden { display: none !important; }
+  .flex { display: flex; }
+  .grid { display: grid; }
+  .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .col-span-5 { grid-column: span 5 / span 5; }
+  .col-span-2 { grid-column: span 2 / span 2; }
+  .items-center { align-items: center; }
+  .justify-center { justify-content: center; }
+  .overflow-hidden { overflow: hidden; }
+</style>
+</head>
+<body class="bg-slate-950 overflow-hidden select-none">
+
+<canvas id="game" class="fixed inset-0"></canvas>
+
+<!-- 受伤闪红 -->
+<div id="red-flash" class="fixed inset-0 pointer-events-none z-10 transition-opacity duration-200" style="opacity:0;background:radial-gradient(ellipse at center, rgba(255,0,0,0) 35%, rgba(255,40,40,0.45) 100%);"></div>
+<div id="white-flash" class="fixed inset-0 pointer-events-none z-10 transition-opacity duration-100" style="opacity:0;background:#ffffff;"></div>
+
+<!-- 挑战横幅 -->
+<div id="challenge-banner" class="hidden fixed top-16 left-1/2 z-20 pointer-events-none" style="transform:translateX(-50%)">
+  <div class="hud-panel px-5 py-2.5 rounded-2xl text-center min-w-[280px] border-amber-400/30">
+    <div id="challenge-title" class="text-[13px] font-bold text-amber-300 tracking-wide"></div>
+    <div id="challenge-desc" class="text-[11px] text-slate-300 mt-0.5"></div>
+    <div class="h-1.5 rounded-full bg-black/40 mt-2 overflow-hidden"><div id="challenge-bar" class="h-full rounded-full bg-amber-400" style="width:100%"></div></div>
+  </div>
+</div>
+
+<!-- Boss 血条 -->
+<div id="boss-bar" class="hidden fixed top-16 left-1/2 z-20 pointer-events-none" style="transform:translateX(-50%)">
+  <div class="hud-panel px-5 py-2 rounded-2xl min-w-[300px] border-rose-500/40">
+    <div id="boss-name" class="text-[13px] font-bold text-rose-300 text-center tracking-wide">👹 Boss</div>
+    <div class="h-2.5 rounded-full bg-black/50 mt-1.5 overflow-hidden border border-white/10"><div id="boss-fill" class="h-full rounded-full" style="width:100%;background:linear-gradient(90deg,#f87171,#dc2626)"></div></div>
+  </div>
+</div>
+
+<!-- ============================== 顶部 HUD ============================== -->
+<div class="fixed top-0 inset-x-0 z-20 flex items-start gap-2 p-2 pointer-events-none">
+  <div class="hud-panel flex items-center gap-3 px-3 py-2 rounded-2xl">
+    <div class="flex flex-col leading-tight">
+      <span id="time-label" class="text-[12px] font-bold text-white drop-shadow">☀️ 08:00 · 第 1 天</span>
+      <span id="weather-label" class="text-[11px] font-medium text-amber-200">☀️ 晴朗</span>
+      <span id="zone-label" class="text-[10px] font-medium text-emerald-300">⛩ 荒野草原</span>
+    </div>
+    <div class="w-px h-9 bg-white/15"></div>
+    <div class="flex flex-col items-center">
+      <canvas id="compass" width="76" height="76" style="width:46px;height:46px"></canvas>
+      <span class="text-[8px] uppercase tracking-[0.2em] text-white/50 mt-0.5">本能</span>
+    </div>
+  </div>
+
+  <div class="hud-panel flex-1 max-w-2xl px-3 py-2 rounded-2xl grid grid-cols-5 gap-x-3 gap-y-1">
+    <div>
+      <div class="meter"><span class="meter-icon">❤️</span><div class="meter-track"><span id="m-hp" class="meter-fill" style="background:linear-gradient(90deg,#fb7185,#ef4444)"></span></div></div>
+      <div class="meter-label">生命</div>
+    </div>
+    <div>
+      <div class="meter"><span class="meter-icon">🍖</span><div class="meter-track"><span id="m-sat" class="meter-fill" style="background:linear-gradient(90deg,#fbbf24,#f59e0b)"></span></div></div>
+      <div class="meter-label">饱食度</div>
+    </div>
+    <div>
+      <div class="meter"><span class="meter-icon">💧</span><div class="meter-track"><span id="m-thirst" class="meter-fill" style="background:linear-gradient(90deg,#38bdf8,#0ea5e9)"></span></div></div>
+      <div class="meter-label">水分</div>
+    </div>
+    <div>
+      <div class="meter"><span class="meter-icon">⚡</span><div class="meter-track"><span id="m-stam" class="meter-fill" style="background:linear-gradient(90deg,#a3e635,#84cc16)"></span></div></div>
+      <div class="meter-label">体力</div>
+    </div>
+    <div>
+      <div class="meter"><span class="meter-icon">🧠</span><div class="meter-track"><span id="m-mood" class="meter-fill" style="background:linear-gradient(90deg,#e879f9,#c026d3)"></span></div></div>
+      <div class="meter-label">心情</div>
+    </div>
+    <div id="wet-meter" class="col-span-5 -mt-0.5" style="opacity:0.4">
+      <div class="meter"><span class="meter-icon">🌧️</span><div class="meter-track" style="height:5px"><span id="m-wet" class="meter-fill" style="background:linear-gradient(90deg,#67e8f9,#22d3ee)"></span></div></div>
+      <div class="meter-label">毛发湿润度</div>
+    </div>
+    <div class="col-span-5 flex items-center gap-2 -mt-0.5">
+      <span id="level-label" class="text-[10px] font-bold text-amber-200 w-14 shrink-0">Lv 1</span>
+      <div class="flex-1 h-1.5 rounded-full bg-black/40 border border-white/10 overflow-hidden"><span id="m-xp" class="block h-full rounded-full" style="background:linear-gradient(90deg,#fbbf24,#f59e0b);width:0%"></span></div>
+      <span class="text-[9px] text-white/40 tracking-widest shrink-0">经验</span>
+    </div>
+    <div class="col-span-5 -mt-1">
+      <span id="summon-chip" class="inline-block text-[10px] font-semibold text-orange-300 bg-black/30 border border-orange-400/30 px-2 py-0.5 rounded-full">📣 无伙伴猫</span>
+    </div>
+  </div>
+
+  <div class="flex flex-row items-center gap-1.5 pointer-events-auto">
+    <button id="btn-growth" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-amber-500/30 transition" title="成长与技能">📈</button>
+    <button id="btn-guide" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="生存指南 (G)">📖</button>
+    <button id="btn-inv" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition relative" title="背包 (I)">🎒<span id="inv-badge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 items-center justify-center rounded-full bg-amber-500 text-black text-[10px] font-bold"></span></button>
+    <button id="btn-friends" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="猫朋友 (B)">🐈</button>
+    <button id="btn-sound" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="开关音效">🔊</button>
+    <button id="btn-reset" class="hud-panel w-9 h-9 rounded-xl text-[13px] hover:bg-rose-500/30 transition" title="开始新游戏">↻</button>
+  </div>
+</div>
+
+<!-- 事件日志 -->
+<div id="log" class="fixed left-3 top-[96px] z-20 w-72 max-w-[82vw] space-y-1.5 pointer-events-none"></div>
+
+<!-- 桌面按键提示 -->
+<div id="hint-bar" class="hidden sm:block fixed bottom-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+  <div class="hud-panel px-4 py-1.5 rounded-full text-[11px] text-slate-300 tracking-wide whitespace-nowrap">
+    <b class="text-white">WASD</b> 移动 · <b class="text-white">Shift</b> 潜行 · <b class="text-white">空格</b> 扑击 · <b class="text-white">E</b> 嗅探 · <b class="text-white">Q</b> 梳理 · <b class="text-white">F</b> 互动
+  </div>
+</div>
+
+<!-- ============================ 触屏控制 =========================== -->
+<div id="touch-ui" class="hidden fixed inset-x-0 bottom-0 z-20 pointer-events-none">
+  <div id="joystick" class="pointer-events-auto absolute left-5 bottom-7 w-28 h-28 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm" style="touch-action:none">
+    <div id="joystick-knob" class="absolute left-1/2 top-1/2 -ml-6 -mt-6 w-12 h-12 rounded-full bg-white/30 border border-white/40" style="transition:transform .04s linear"></div>
+  </div>
+  <div class="absolute right-4 bottom-7 grid grid-cols-2 gap-2 pointer-events-auto">
+    <button id="btn-pounce" class="act-btn" title="扑击">⚔️</button>
+    <button id="btn-sniff" class="act-btn" title="嗅探">👃</button>
+    <button id="btn-groom" class="act-btn" title="梳理">✨</button>
+    <button id="btn-interact" class="act-btn" title="互动">🤝</button>
+    <button id="btn-sneak" class="act-btn col-span-2 justify-center" title="切换潜行">🦎 潜行</button>
+    <button id="btn-summon" class="act-btn col-span-2 justify-center !w-auto !h-9" title="召唤伙伴猫（R）">📣 召唤伙伴</button>
+  </div>
+</div>
+
+<!-- ===================== 猫互动菜单（漂浮在猫头顶） ===================== -->
+<div id="cat-menu" class="hidden fixed z-30 pointer-events-auto flex-col items-center gap-1 bg-black/60 border border-white/15 rounded-2xl px-2 py-1.5 backdrop-blur-md shadow-xl" style="transform:translateX(-50%)">
+  <div class="text-[10px] text-pink-200 px-1 pb-0.5 font-semibold tracking-wide">猫的互动</div>
+  <div class="flex gap-1">
+    <button data-action="pet" class="cat-btn">🐾 抚摸</button>
+    <button data-action="feed" class="cat-btn">🍖 喂食</button>
+    <button data-action="adopt" class="cat-btn">🤝 收养</button>
+  </div>
+</div>
+
+<!-- ============================ 背包面板 =========================== -->
+<div id="modal-inv" class="hidden fixed inset-0 z-30 items-center justify-center bg-black/60 backdrop-blur-sm p-3">
+  <div class="modal-panel w-full max-w-lg max-h-[86vh] rounded-3xl flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">🎒 背包 &amp; 合成</h2>
+      <button class="modal-close w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition">✕</button>
+    </div>
+    <div class="flex gap-2 px-5 pt-3 shrink-0">
+      <button id="tab-inv" class="tab tab-on">行囊</button>
+      <button id="tab-craft" class="tab">合成</button>
+    </div>
+    <div id="panel-inv" class="overflow-y-auto p-4 space-y-2 flex-1"><div id="inv-list"></div></div>
+    <div id="panel-craft" class="overflow-y-auto p-4 space-y-2 flex-1 hidden"><div id="craft-list"></div></div>
+  </div>
+</div>
+
+<!-- ============================= 猫朋友面板 ============================ -->
+<div id="modal-friends" class="hidden fixed inset-0 z-30 items-center justify-center bg-black/60 backdrop-blur-sm p-3">
+  <div class="modal-panel w-full max-w-lg max-h-[86vh] rounded-3xl flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">🐈 猫朋友</h2>
+      <button class="modal-close w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition">✕</button>
+    </div>
+    <div class="px-5 pt-3 text-[11px] text-slate-400 shrink-0">走近流浪猫按 <b class="text-slate-200">F</b> 抚摸它——猫头顶会弹出操作菜单，可以 <b class="text-slate-200">喂食</b>（三文鱼/老鼠）并 <b class="text-slate-200">收养</b>（亲密度达到 <b class="text-pink-300">60 ♥</b>）。粉色气味标记猫的位置。</div>
+    <div id="friends-list" class="overflow-y-auto p-4 space-y-2 flex-1"></div>
+  </div>
+</div>
+
+<!-- ============================= 生存指南 ============================== -->
+<div id="modal-guide" class="hidden fixed inset-0 z-30 items-center justify-center bg-black/60 backdrop-blur-sm p-3">
+  <div class="modal-panel w-full max-w-lg max-h-[86vh] rounded-3xl flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">📖 生存指南</h2>
+      <button class="modal-close w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition">✕</button>
+    </div>
+    <div id="guide-body" class="overflow-y-auto p-5 space-y-4 flex-1 text-[12.5px] text-slate-300 leading-relaxed">
+      <div>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">🎮 操作</h3>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-400">
+          <span><b class="text-slate-200">WASD / 方向键</b> — 移动</span>
+          <span><b class="text-slate-200">Shift</b> — 潜行（藏进高草丛）</span>
+          <span><b class="text-slate-200">空格</b> — 扑击 / 攻击</span>
+          <span><b class="text-slate-200">E</b> — 嗅探（气味流）</span>
+          <span><b class="text-slate-200">Q</b> — 梳理毛发（+心情）</span>
+          <span><b class="text-slate-200">F</b> — 互动 / 抚摸 / 钓鱼</span>
+          <span><b class="text-slate-200">R</b> — 召唤伙伴猫作战（5 分钟冷却）</span>
+          <span><b class="text-slate-200">I / B / G</b> — 打开面板</span>
+          <span><b class="text-slate-200">Esc</b> — 关闭面板</span>
+        </div>
+      </div>
+      <div>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">👃 嗅觉本能</h3>
+        <p>按下 <b class="text-slate-200">E</b>，彩色气味流会随风告诉你周围有什么：</p>
+        <div class="mt-1.5 space-y-1">
+          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#3ee6ff"></span><b class="text-cyan-300">青色</b> — 干净的水源泉水</div>
+          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ffd75e"></span><b class="text-amber-300">金色</b> — 猎物：老鼠、三文鱼、蚱蜢</div>
+          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ff9ad5"></span><b class="text-pink-300">粉色</b> — 友好的流浪猫</div>
+          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ff4d4d"></span><b class="text-rose-400">红色</b> — 捕食者：野猪、毒蛇、狐狸</div>
+          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ff8a3d"></span><b class="text-orange-400">橙色</b> — 入侵领地的对手猫</div>
+        </div>
+        <p class="mt-1.5 text-slate-400">顶部<b class="text-slate-200">「本能」罗盘</b>始终指向最近的各种气味来源。</p>
+      </div>
+      <div>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">🐾 生存小贴士</h3>
+        <ul class="list-disc list-inside space-y-1 text-slate-400">
+          <li>在<b class="text-slate-200">泉水</b>（青色）喝水，在河岸按 <b class="text-slate-200">F</b> 钓鱼。</li>
+          <li>下雨会打湿毛发——<b class="text-slate-200">湿毛</b>会拖慢体力回复。合成<b class="text-slate-200">树叶雨帽</b>或在洞穴火堆旁烘干。</li>
+          <li>潜行穿过<b class="text-slate-200">高草丛</b>避开捕食者，再扑击致命一击。</li>
+          <li>洞穴是安全庇护所：在床上睡到天亮恢复生命，在火堆旁烤三文鱼。</li>
+          <li>按 <b class="text-slate-200">Q</b> 梳理毛发提升心情；心情过低会持续削弱你。</li>
+          <li>交好流浪猫（粉色）——亲密度高了它们会预警危险、并肩作战。</li>
+          <li>猫薄荷是很强的提神草药……但会引发"疯狂跑酷"。慎用。</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">🔨 合成配方</h3>
+        <ul class="list-disc list-inside space-y-1 text-slate-400">
+          <li><b class="text-slate-200">树叶雨帽</b> — 树叶 ×3 + 藤蔓 ×2（防御：受伤 -2）</li>
+          <li><b class="text-slate-200">鱼骨项圈</b> — 鱼骨 ×3 + 筋腱 ×1（攻击 +3，友情获取 +50%）</li>
+          <li><b class="text-slate-200">猫牙项链</b> — 鱼骨 ×4 + 筋腱 ×2（攻击 +20%）</li>
+          <li><b class="text-slate-200">干猫薄荷</b> — 猫薄荷 ×2（需要白天）</li>
+          <li><b class="text-slate-200">草药膏</b> — 草药 ×3 + 野猪油 ×1</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">📈 成长与技能</h3>
+        <ul class="list-disc list-inside space-y-1 text-slate-400">
+          <li>每个行为都会获得<b class="text-slate-200">经验</b>——捕猎、钓鱼、采集、宠物、挑战、击败 Boss。升级提升最大生命 / 体力 / 心情。</li>
+          <li>升级、挑战胜利、击败 Boss 都会获得<b class="text-slate-200">技能点</b>。在 📈 成长面板里自由点亮<b class="text-slate-200">三大分支</b>：🎯狩猎（扑击/嗅觉/钓鱼）、🛡️生存（速度/减伤/潜行）、🐈羁绊（友情/心情/召唤强化）。</li>
+          <li>不同分支决定你的玩法：猎手输出流、生存苟活流、还是猫群羁绊流——选择不可逆，谨慎加点。</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">⛩ 区域与 Boss</h3>
+        <ul class="list-disc list-inside space-y-1 text-slate-400">
+          <li>地图边缘有<b class="text-slate-200">传送门</b>通往新区域：<b class="text-slate-200">城市小区</b>（5 级）、<b class="text-slate-200">干燥荒野</b>（10 级）、<b class="text-slate-200">幽暗森林</b>（15 级）。等级不够会被拦下。</li>
+          <li>每个区域一角都盘踞着<b class="text-slate-200">关底 Boss</b>：巨野猪（冲撞）、弹弓顽童（远程石子）、巨狼（极速撕咬）、巨蛇（扑击）。击败它们奖励大量经验 + 3 技能点。</li>
+          <li>Boss 靠近时屏幕上方会出现血条；扑击是主要输出手段。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= 成长面板 ============================ -->
+<div id="modal-growth" class="hidden fixed inset-0 z-30 items-center justify-center bg-black/60 backdrop-blur-sm p-3">
+  <div class="modal-panel w-full max-w-lg max-h-[86vh] rounded-3xl flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">📈 成长与技能</h2>
+      <button class="modal-close w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition">✕</button>
+    </div>
+    <div id="growth-list" class="overflow-y-auto p-4 flex-1"></div>
+  </div>
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/world.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/challenges.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
