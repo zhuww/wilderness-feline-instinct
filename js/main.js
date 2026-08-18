@@ -407,6 +407,26 @@
     return { x: 8 * TILE, y: (HH / 2) * TILE };
   }
 
+  /* 若玩家落在不可行走的格子上（例如墙里），就近吸附到可行走位置 */
+  function snapPlayerWalkable() {
+    const p = Game.entities.player;
+    if (!p) return;
+    const t = Game.world.tileAt(p.x, p.y);
+    if (Game.world.canWalk(t.tx, t.ty)) return;
+    for (let r = 1; r < 60; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          const tx = t.tx + dx, ty = t.ty + dy;
+          if (Game.world.inBounds(tx, ty) && Game.world.canWalk(tx, ty)) {
+            p.x = (tx + 0.5) * Game.world.TILE;
+            p.y = (ty + 0.5) * Game.world.TILE;
+            return;
+          }
+        }
+      }
+    }
+  }
+
   function transitionZone(f) {
     const p = Game.entities.player;
     if (p.level < f.minLevel) {
@@ -415,12 +435,21 @@
     }
     const to = f.to;
     const from = state.zone;
-    const pos = arrivalPos(to, from);
     Game.ui.fadeTo(1, () => {
       state.zone = to;
       state.seed = state.baseSeed + to * 7919;
       Game.world.generate(state.seed, to);
+      /* 到达位置 = 新区域中"返回旧区域"的大门所在格（保证可行走） */
+      let pos = null;
+      for (const g of Game.world.features) {
+        if (g.type === 'gate' && g.to === from) {
+          pos = { x: (g.tx + 0.5) * Game.world.TILE, y: (g.ty + 0.5) * Game.world.TILE };
+          break;
+        }
+      }
+      if (!pos) pos = arrivalPos(to, from);
       Game.entities.init(to, pos, true);
+      snapPlayerWalkable();   /* 兜底：绝不让玩家卡在墙里 */
       state.cave = false;
       Game.ui.log(`⛩ 你进入了【${Game.world.ZONE_INFO[to].name}】！`, 'good');
       Game.sfx && Game.sfx.cave();
@@ -442,6 +471,7 @@
     state.caveRack = Game.render.CAVE_RACK;
     state.caveExit = Game.render.CAVE_EXIT;
     if (save) applySave(save);
+    snapPlayerWalkable();   /* 旧存档若卡在墙里，自动吸附出来 */
     Game.ui.init();
 
     let last = performance.now();

@@ -202,11 +202,64 @@
         break;
       }
       case T.ROCK: drawRock(ctx, px, py, h); break;
-      case T.WALL: drawWall(ctx, px, py, h); break;
+      case T.WALL: {
+        if (Game.world.zone === 1) drawCityFacade(ctx, tx, ty, px, py);
+        else drawWall(ctx, px, py, h);
+        break;
+      }
       case T.ROAD: drawRoad(ctx, px, py, h); break;
       case T.DIRT: drawDirt(ctx, px, py, h); break;
       case T.SWAMP: drawSwamp(ctx, px, py, h, t); break;
       case T.URBAN: drawUrban(ctx, px, py, h); break;
+    }
+  }
+
+  /* 城市小区：2D 投影建筑立面（街道上下的贴图景） */
+  function drawCityFacade(ctx, tx, ty, px, py) {
+    const band = Game.world.CITY ? Game.world.CITY.MID : 83;
+    const dist = Math.abs(ty - band);
+    if (dist > 9) {
+      /* 远景：暗色建筑剪影 */
+      ctx.fillStyle = '#353a46';
+      ctx.fillRect(px, py, W.TILE, W.TILE);
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(px, py, W.TILE, 6);
+      return;
+    }
+    /* 近景立面：按街区配色，展示窗户 / 店招 / 门 */
+    const block = Math.floor(tx / 16);
+    const pals = [['#c96a5a', '#e8b0a0'], ['#6a8f6a', '#a8c8a0'], ['#7a6f9a', '#b0a8d0'], ['#c99a4a', '#e8d0a0'], ['#5a8fa0', '#a0c8d8'], ['#a05a6a', '#d0a0b0']];
+    const pal = pals[block % pals.length];
+    const dark = 1 - Math.min(0.38, (dist - 1) * 0.055);
+    ctx.fillStyle = shade(pal[0], dark);
+    ctx.fillRect(px, py, W.TILE, W.TILE);
+    /* 砖缝 */
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px, py + 12); ctx.lineTo(px + W.TILE, py + 12);
+    ctx.moveTo(px, py + 38); ctx.lineTo(px + W.TILE, py + 38);
+    ctx.stroke();
+    /* 窗户（两排） */
+    ctx.fillStyle = shade(pal[1], dark);
+    const w1 = px + 8 + ((tx * 7) % 3) * 10;
+    ctx.fillRect(w1, py + 15, 10, 13);
+    ctx.fillRect(px + 30 + ((tx * 5) % 3) * 8, py + 15, 10, 13);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(w1 + 2, py + 17, 3, 9);
+    /* 店招（每 8 格一个，带灯箱） */
+    if (tx % 8 === 0) {
+      ctx.fillStyle = '#3a2c20';
+      ctx.fillRect(px + 4, py + 3, W.TILE - 8, 8);
+      ctx.fillStyle = '#ffe8a0';
+      ctx.fillRect(px + 6, py + 4, W.TILE - 12, 6);
+      ctx.fillStyle = 'rgba(255,235,170,0.35)';
+      ctx.fillRect(px + 6, py + 4, W.TILE - 12, 2);
+    }
+    /* 底层门面 / 遮阳篷 */
+    if (tx % 4 === 2) {
+      ctx.fillStyle = shade('#4a3a2c', dark);
+      ctx.fillRect(px + 6, py + 40, W.TILE - 12, 8);
     }
   }
 
@@ -229,11 +282,16 @@
     /* 车道线 */
     ctx.strokeStyle = 'rgba(255,214,90,0.35)';
     ctx.lineWidth = 2;
-    const phase = (px + py) % (W.TILE * 2);
+    const ph = (px * 13 + py * 7) % 24;
     ctx.beginPath();
-    ctx.moveTo(px + W.TILE / 2, py - 12 + ((px * 13 + py * 7) % 24));
-    ctx.lineTo(px + W.TILE / 2, py + 12 + ((px * 13 + py * 7) % 24));
+    ctx.moveTo(px + W.TILE / 2, py - 12 + ph);
+    ctx.lineTo(px + W.TILE / 2, py + 12 + ph);
     ctx.stroke();
+    /* 斑马线（每隔一段） */
+    if (h > 0.6) {
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      for (let i = 0; i < 3; i++) ctx.fillRect(px + 6 + i * 12, py + 40, 7, 4);
+    }
   }
 
   function drawDirt(ctx, px, py, h) {
@@ -269,7 +327,7 @@
   }
 
   function drawUrban(ctx, px, py, h) {
-    /* 广场地砖 */
+    /* 广场/人行道地砖 */
     ctx.strokeStyle = 'rgba(255,255,255,0.07)';
     ctx.lineWidth = 1;
     ctx.strokeRect(px + 0.5, py + 0.5, W.TILE - 1, W.TILE - 1);
@@ -279,6 +337,21 @@
       ctx.strokeStyle = 'rgba(255,255,255,0.25)';
       ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.arc(px + 24, py + 24, 5, 0, U.TAU); ctx.stroke();
+    } else if (h > 0.78) {
+      /* 路灯 */
+      ctx.fillStyle = '#4a4f5a';
+      ctx.fillRect(px + 14, py + 26, 3, 20);
+      ctx.fillStyle = '#ffe9a0';
+      ctx.beginPath(); ctx.arc(px + 15, py + 26, 4, 0, U.TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,233,160,0.28)';
+      ctx.beginPath(); ctx.arc(px + 15, py + 26, 8, 0, U.TAU); ctx.fill();
+    } else if (h > 0.55) {
+      /* 长椅 */
+      ctx.fillStyle = '#6b4a2e';
+      ctx.fillRect(px + 10, py + 34, 26, 5);
+      ctx.fillRect(px + 10, py + 30, 26, 3);
+      ctx.fillRect(px + 13, py + 39, 3, 6);
+      ctx.fillRect(px + 30, py + 39, 3, 6);
     }
   }
 

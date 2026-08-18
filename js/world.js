@@ -154,65 +154,64 @@
   }
 
   /* ---------------------------------------------------------------- city */
+  /* 城市小区：线性街道探索地图（2D 投影视角）
+     可移动区域是一条横向长街（rows 78–88），上下为建筑立面，
+     街道沿 x 方向分段变化：入口广场→商业街→花园→暗巷→仓库→Boss区 */
+  const CITY = { Y0: 78, Y1: 88, ROAD: [82, 84], MID: 83 };
   function genCity() {
-    terrain.fill(T.URBAN);
-    /* road grid every 16 tiles, 2 wide */
-    for (let gx = 0; gx < W; gx += 16) {
-      for (let i = 0; i < 2; i++) {
-        const tx = gx + i;
-        for (let ty = 0; ty < H; ty++) if (tx < W) terrain[idx(tx, ty)] = T.ROAD;
+    terrain.fill(T.WALL);   /* 整张图先铺满建筑立面 */
+    /* 街道带：人行道 / 广场底 */
+    for (let y = CITY.Y0; y <= CITY.Y1; y++) {
+      for (let x = 0; x < W; x++) terrain[idx(x, y)] = T.URBAN;
+    }
+    /* 中央马路 */
+    for (let y = CITY.ROAD[0]; y <= CITY.ROAD[1]; y++) {
+      for (let x = 0; x < W; x++) terrain[idx(x, y)] = T.ROAD;
+    }
+    /* --- 西端：入口广场 + 喷泉 --- */
+    for (let y = CITY.Y0 + 1; y < CITY.Y1; y++) for (let x = 6; x < 22; x++) terrain[idx(x, y)] = T.URBAN;
+    features.push({ type: 'spring', tx: 13, ty: CITY.MID, regrowT: 0 });
+    /* --- 商业街：橱窗立柱 + 横街 --- */
+    for (let x = 24; x < 58; x++) {
+      if (x % 6 === 0) {
+        terrain[idx(x, CITY.Y0 + 1)] = T.WALL;
+        terrain[idx(x, CITY.Y1 - 1)] = T.WALL;
       }
     }
-    for (let gy = 0; gy < H; gy += 16) {
-      for (let i = 0; i < 2; i++) {
-        const ty = gy + i;
-        for (let tx = 0; tx < W; tx++) if (ty < H) terrain[idx(tx, ty)] = T.ROAD;
+    for (let x = 40; x < 44; x++) for (let y = CITY.Y0; y <= CITY.Y1; y++) terrain[idx(x, y)] = T.ROAD;
+    /* --- 花园：绿地、树篱、池塘、浆果草药 --- */
+    for (let x = 60; x < 82; x++) {
+      for (let y = CITY.Y0 + 2; y <= CITY.Y1 - 2; y++) terrain[idx(x, y)] = T.MEADOW;
+    }
+    for (let y = CITY.Y0 + 2; y <= CITY.Y1 - 2; y += 3) {
+      for (let x = 61; x < 81; x += 4) terrain[idx(x, y)] = T.FOREST;
+    }
+    for (let y = 85; y <= 89; y++) {
+      for (let x = 68; x <= 74; x++) {
+        const d = Math.hypot(x - 71, y - 87);
+        if (d <= 1.3) terrain[idx(x, y)] = T.WATER;
+        else if (d <= 2 && terrain[idx(x, y)] !== T.FOREST) terrain[idx(x, y)] = T.SAND;
       }
     }
-    /* building blocks with gaps (plazas / alleys) */
-    for (let by = 0; by < H; by += 16) {
-      for (let bx = 0; bx < W; bx += 16) {
-        const b0 = bx + 2, b1 = bx + 13;
-        const c0 = by + 2, c1 = by + 13;
-        const rects = [[b0, c0, 5, 5], [b1 - 4, c0, 5, 5], [b0, c1 - 4, 5, 5], [b1 - 4, c1 - 4, 5, 5]];
-        for (const [rx, ry, rw, rh] of rects) {
-          for (let y = ry; y < ry + rh; y++) {
-            for (let x = rx; x < rx + rw; x++) {
-              if (inBounds(x, y)) terrain[idx(x, y)] = T.WALL;
-            }
-          }
-        }
-        /* a park island in some blocks */
-        if ((bx + by) % 5 === 0) {
-          const px = bx + 6, py = by + 6;
-          for (let y = py; y < py + 4; y++) {
-            for (let x = px; x < px + 4; x++) {
-              if (inBounds(x, y)) terrain[idx(x, y)] = T.MEADOW;
-            }
-          }
-          features.push({ type: 'berry', tx: px + 1, ty: py + 1, regrowT: 0 });
-          features.push({ type: 'herbs', tx: px + 3, ty: py + 3, regrowT: 0 });
-        }
-      }
+    features.push({ type: 'berry', tx: 64, ty: CITY.MID, regrowT: 0 });
+    features.push({ type: 'herbs', tx: 78, ty: CITY.MID + 1, regrowT: 0 });
+    /* --- 暗巷：窄巷 + 猫薄荷 --- */
+    for (let x = 86; x < 104; x++) {
+      for (let y = CITY.Y0; y <= CITY.Y1; y++) terrain[idx(x, y)] = (x % 5 === 0) ? T.GRASS : T.URBAN;
     }
-    /* central pond with sand rim */
-    const pcx = Math.floor(W * 0.72), pcy = Math.floor(H * 0.3);
-    for (let y = pcy - 7; y <= pcy + 7; y++) {
-      for (let x = pcx - 7; x <= pcx + 7; x++) {
-        const d = Math.hypot(x - pcx, y - pcy);
-        if (d <= 5.5) terrain[idx(x, y)] = T.WATER;
-        else if (d <= 7 && terrain[idx(x, y)] !== T.ROAD) terrain[idx(x, y)] = T.SAND;
-      }
+    features.push({ type: 'catnip', tx: 90, ty: CITY.MID, regrowT: 0 });
+    features.push({ type: 'catnip', tx: 99, ty: CITY.MID + 1, regrowT: 0 });
+    /* --- 仓库 / 工业区（东端，通往 Boss 竞技场）--- */
+    for (let x = 106; x < 148; x++) {
+      for (let y = CITY.Y0; y <= CITY.Y1; y++) terrain[idx(x, y)] = T.DIRT;
     }
-    features.push({ type: 'spring', tx: pcx + 8, ty: pcy, regrowT: 0 });
-    /* a few catnip in alleys */
-    for (let i = 0; i < 6; i++) {
-      const tx = U.randInt(6, W - 6), ty = U.randInt(6, H - 6);
-      if (terrain[idx(tx, ty)] === T.URBAN) features.push({ type: 'catnip', tx, ty, regrowT: 0 });
-    }
-    /* spawn at a road junction */
-    const cx = Math.floor(W / 16) * 16 + 4, cy = Math.floor(H / 16) * 16 + 4;
-    terrain[idx(cx, cy)] = T.ROAD;
+    for (let x = 110; x < 114; x++) for (let y = CITY.Y0; y <= CITY.Y1; y++) terrain[idx(x, y)] = T.ROAD;
+    features.push({ type: 'herbs', tx: 122, ty: CITY.MID + 1, regrowT: 0 });
+    /* --- 极东端：Boss 竞技场 --- */
+    for (let y = CITY.Y0; y <= CITY.Y1; y++) for (let x = 148; x < W; x++) terrain[idx(x, y)] = T.URBAN;
+    /* --- 出生点：西端广场 --- */
+    const cx = 15, cy = CITY.MID;
+    terrain[idx(cx, cy)] = T.URBAN;
     spawn = { x: (cx + 0.5) * TILE, y: (cy + 0.5) * TILE };
   }
 
@@ -313,9 +312,17 @@
 
   /* ------------------------------------------------------------------ gates */
   function placeGates() {
+    /* 大门周围清出一小片可行走区域，避免到达时卡在墙里 */
+    const walkBase = () => (zone === 1 ? T.URBAN : zone === 2 ? T.DIRT : T.MEADOW);
     const g = (tx, ty, to, minLevel, label) => {
       if (!inBounds(tx, ty)) return;
-      terrain[idx(tx, ty)] = to === 1 ? T.URBAN : to === 2 ? T.DIRT : to === 3 ? T.MEADOW : T.MEADOW;
+      const base = walkBase();
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const nx = tx + dx, ny = ty + dy;
+          if (inBounds(nx, ny) && terrain[idx(nx, ny)] !== T.WATER) terrain[idx(nx, ny)] = base;
+        }
+      }
       features.push({ type: 'gate', tx, ty, to, minLevel, label, regrowT: 0 });
     };
     if (zone === 0) {
@@ -323,7 +330,7 @@
       g(W - 4, Math.floor(H / 2), 2, 10, '干燥荒野');
       g(4, Math.floor(H / 2), 3, 15, '幽暗森林');
     } else if (zone === 1) {
-      g(Math.floor(W / 2), H - 4, 0, 1, '荒野草原');
+      g(4, CITY.MID, 0, 1, '荒野草原');   /* 城市西端出口 */
     } else if (zone === 2) {
       g(4, Math.floor(H / 2), 0, 1, '荒野草原');
     } else if (zone === 3) {
@@ -367,7 +374,7 @@
   }
 
   Game.world = {
-    TILE, W, H, T, terrain, features, rivers, seed, ZONE_INFO,
+    TILE, W, H, T, terrain, features, rivers, seed, ZONE_INFO, CITY,
     get spawn() { return spawn; },
     get zone() { return zone; },
     generate, terrainAt, isWater, canWalk, tileAt, inBounds, isNearWater, findNearest, idx,
