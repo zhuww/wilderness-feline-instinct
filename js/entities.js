@@ -163,7 +163,7 @@
   /* ----------------------------------------------------------- zone init */
   const ZONE_SPAWN = {
     0: { prey: { mouse: 42, grasshopper: 30 }, salmon: 26, pred: { boar: 6, fox: 4, viper: 6 }, comp: 4 },
-    1: { prey: { mouse: 26, grasshopper: 12 }, salmon: 8, pred: { fox: 5, viper: 3 }, comp: 3 },
+    1: { prey: { mouse: 26, grasshopper: 12 }, salmon: 8, pred: { fox: 5, viper: 3 }, strayDogs: 3, comp: 3 },
     2: { prey: { mouse: 20, grasshopper: 22 }, salmon: 6, pred: { boar: 5, fox: 6, viper: 8 }, comp: 3 },
     3: { prey: { mouse: 28, grasshopper: 12 }, salmon: 4, pred: { boar: 6, fox: 5, viper: 9 }, comp: 3 },
   };
@@ -230,7 +230,82 @@
       }
     }
     for (let i = 0; i < cfg.comp; i++) spawnCompanion();
+    /* 流浪狗：城市里的新威胁 */
+    for (let i = 0; i < (cfg.strayDogs || 0); i++) spawnStrayDog();
     spawnBoss(zone);
+  }
+
+  function spawnStrayDog() {
+    for (let tries = 0; tries < 240; tries++) {
+      const tx = U.randInt(2, W.W - 3), ty = U.randInt(2, W.H - 3);
+      if (W.canWalk(tx, ty)) {
+        list.push({
+          kind: 'straydog', x: (tx + 0.5) * W.TILE, y: (ty + 0.5) * W.TILE,
+          r: 12, speed: 145, hp: 30, dir: Math.random() * U.TAU,
+          animT: Math.random() * 10, wanderT: U.randRange(2, 5),
+          chaseT: 0, attackCd: 0, scentT: U.randRange(0.2, 0.8),
+          state: 'wander', stateT: 0, alive: true,
+        });
+        return;
+      }
+    }
+  }
+
+  function updateStrayDog(e, dt) {
+    const p = player;
+    e.animT += dt;
+    e.scentT -= dt;
+    if (e.scentT <= 0) {
+      Game.particles.emitScent('predator', e.x, e.y, p.sniff.active);
+      e.scentT = p.sniff.active ? 0.15 : 0.9;
+    }
+    e.attackCd = Math.max(0, e.attackCd - dt);
+    const d = U.dist(e.x, e.y, p.x, p.y);
+    if (e.chaseT > 0) {
+      e.chaseT -= dt;
+      if (d > 520) e.chaseT = 0;   /* 追丢了就放弃 */
+      if (e.chaseT > 0) {
+        e.state = 'chase';
+        e.dir = Math.atan2(p.y - e.y, p.x - e.x);
+        moveEntity(e, Math.cos(e.dir) * e.speed * dt, Math.sin(e.dir) * e.speed * dt);
+        if (d < e.r + p.r + 5 && e.attackCd <= 0) {
+          e.attackCd = 1.2;
+          damagePlayer(8);
+          Game.ui.log('🐕 流浪狗咬了你一口！（-8 生命）', 'danger');
+        }
+        return;
+      }
+    }
+    let detect = 235;
+    if (p.state === 'sneak' && p.tallGrass) detect = 95;
+    else if (p.state === 'sneak') detect = 150;
+    if (d < detect && e.chaseT <= 0) {
+      e.chaseT = 6;
+      Game.ui.log('🐕 流浪狗朝你狂吠追来！', 'danger');
+      Game.sfx && Game.sfx.bark();
+      return;
+    }
+    e.state = 'wander';
+    if (e.wanderT <= 0) { e.dir = Math.random() * U.TAU; e.wanderT = U.randRange(2, 5); }
+    e.wanderT -= dt;
+    moveEntity(e, Math.cos(e.dir) * e.speed * 0.35 * dt, Math.sin(e.dir) * e.speed * 0.35 * dt);
+  }
+
+  function hitStrayDog(e) {
+    const crit = rollCrit();
+    e.hp -= pounceDmg(18, crit);
+    e.chaseT = 0;
+    e.state = 'hurt';
+    e.stateT = 0;
+    Game.sfx && Game.sfx.hit();
+    Game.particles.spawn({ x: e.x, y: e.y, kind: 'ring', size: crit ? 40 : 24, color: crit ? 'rgba(255,220,90,0.95)' : 'rgba(255,120,80,0.7)', life: 0.35 });
+    Game.ui.log(`🐕 你打中了流浪狗，${crit ? '暴击！' : ''}它夹着尾巴逃窜！`, 'combat');
+    if (e.hp <= 0) {
+      e.alive = false;
+      addItem('sinew');
+      addXp(12);
+      Game.ui.log('💀 流浪狗被你赶跑了。（+筋腱 +12 经验）', 'combat');
+    }
   }
 
   function spawnBoss(zone) {
@@ -799,6 +874,7 @@
       if (d < p.r + e.r + reach) {
         if (e.kind === 'prey') { catchPrey(e); p.pounceHit.add(e); }
         else if (e.kind === 'predator') { hitPredator(e); p.pounceHit.add(e); }
+        else if (e.kind === 'straydog') { hitStrayDog(e); p.pounceHit.add(e); }
       }
     }
     /* challenge entities: rival cats, dogs, vipers, wolves */
@@ -1346,7 +1422,7 @@
     }
 
     /* 2) nearby world features */
-    const f = W.findNearest(['gate', 'berry', 'catnip', 'spring', 'cave', 'herbs'], p.x, p.y, 90);
+    const f = W.findNearest(['gate', 'berry', 'catnip', 'spring', 'cave', 'herbs', 'trashcan', 'dumpster'], p.x, p.y, 90);
     if (f) {
       switch (f.type) {
         case 'berry': {
@@ -1391,6 +1467,23 @@
           /* 前往新区域（有等级门槛） */
           Game.transitionZone && Game.transitionZone(f);
           p.interactCd = 1.5;
+          break;
+        }
+        case 'trashcan':
+        case 'dumpster': {
+          /* 翻垃圾桶：有机会翻出材料 */
+          f.regrowT = 30;
+          const big = f.type === 'dumpster';
+          if (big || Math.random() < 0.65) {
+            const pool = big ? ['leaves', 'vines', 'sinew', 'herbs', 'fishbone', 'berry'] : ['leaves', 'vines', 'sinew', 'herbs'];
+            const got = U.pick(pool);
+            addItem(got, big ? U.randInt(1, 2) : 1);
+            addXp(2);
+            Game.ui.log(`🗑 你在垃圾堆里翻出了${ITEMS[got].name}！`, 'good');
+          } else {
+            Game.ui.log('🗑 垃圾桶里空空如也……', 'info');
+          }
+          Game.sfx && Game.sfx.pick();
           break;
         }
       }
@@ -1474,12 +1567,13 @@
       if (!e.alive) continue;
       if (e.kind === 'prey') updatePrey(e, dt);
       else if (e.kind === 'predator') updatePredator(e, dt);
+      else if (e.kind === 'straydog') updateStrayDog(e, dt);
       else if (e.kind === 'companion') updateCompanion(e, dt);
     }
     /* prune dead */
     for (let i = list.length - 1; i >= 0; i--) {
       const e = list[i];
-      if ((e.kind === 'prey' || e.kind === 'predator') && !e.alive) list.splice(i, 1);
+      if ((e.kind === 'prey' || e.kind === 'predator' || e.kind === 'straydog') && !e.alive) list.splice(i, 1);
     }
     /* Boss + 弹弓弹道 */
     updateBoss(dt);
@@ -1493,7 +1587,7 @@
     get bossProjectiles() { return bossProjectiles; },
     init, update, updateVitals, interact, useItem, addItem, removeItem, countItem,
     petCompanion, feedCompanion, adoptCompanion,
-    summonCompanion,
+    summonCompanion, hitStrayDog,
     damagePlayer, enterCave, exitCave,
     xpToLevel, addXp, learnSkill, hasSkill, grantSkillBook, grantSkillPoint, hitBoss, recalcMaxStats,
     pounceDmg, critChance, snapToWalkable,

@@ -209,6 +209,19 @@
     features.push({ type: 'herbs', tx: 122, ty: CITY.MID + 1, regrowT: 0 });
     /* --- 极东端：Boss 竞技场 --- */
     for (let y = CITY.Y0; y <= CITY.Y1; y++) for (let x = 148; x < W; x++) terrain[idx(x, y)] = T.URBAN;
+    /* --- 垃圾桶 / 垃圾箱：沿两侧人行道摆放 --- */
+    for (let x = 8; x < 160; x += 10) {
+      for (const ry of [CITY.Y0 + 1, CITY.Y1 - 1]) {
+        const t = terrain[idx(x, ry)];
+        if (t === T.URBAN || t === T.GRASS) {
+          features.push({ type: 'trashcan', tx: x, ty: ry, regrowT: 0 });
+          break;
+        }
+      }
+    }
+    for (const [dx, dy] of [[30, CITY.Y1 - 1], [56, CITY.Y0 + 1], [108, CITY.Y1 - 1], [134, CITY.Y0 + 1]]) {
+      if (inBounds(dx, dy) && canWalk(dx, dy)) features.push({ type: 'dumpster', tx: dx, ty: dy, regrowT: 0 });
+    }
     /* --- 出生点：西端广场 --- */
     const cx = 15, cy = CITY.MID;
     terrain[idx(cx, cy)] = T.URBAN;

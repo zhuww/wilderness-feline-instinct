@@ -87,7 +87,7 @@
     for (const f of W.features) {
       const fx = (f.tx + 0.5) * W.TILE, fy = (f.ty + 0.5) * W.TILE;
       if (fx < cam.x - 90 || fx > cam.x + view.w + 90 || fy < cam.y - 90 || fy > cam.y + view.h + 90) continue;
-      if (f.type === 'berry' || f.type === 'catnip' || f.type === 'herbs' || f.type === 'cave' || f.type === 'gate') {
+      if (f.type === 'berry' || f.type === 'catnip' || f.type === 'herbs' || f.type === 'cave' || f.type === 'gate' || f.type === 'trashcan' || f.type === 'dumpster') {
         draws.push({ y: (f.ty + 1) * W.TILE, f: () => drawFeature(ctx, f, cam, t) });
       }
     }
@@ -203,7 +203,7 @@
       }
       case T.ROCK: drawRock(ctx, px, py, h); break;
       case T.WALL: {
-        if (Game.world.zone === 1) drawCityFacade(ctx, tx, ty, px, py);
+        if (Game.world.zone === 1) drawCityBuilding(ctx, tx, ty, px, py);
         else drawWall(ctx, px, py, h);
         break;
       }
@@ -214,52 +214,78 @@
     }
   }
 
-  /* 城市小区：2D 投影建筑立面（街道上下的贴图景） */
-  function drawCityFacade(ctx, tx, ty, px, py) {
+  /* 城市小区：一栋栋小区楼房（2D 投影立面，沿街一字排开，楼间有暗巷） */
+  function drawCityBuilding(ctx, tx, ty, px, py) {
     const band = Game.world.CITY ? Game.world.CITY.MID : 83;
     const dist = Math.abs(ty - band);
-    if (dist > 9) {
-      /* 远景：暗色建筑剪影 */
-      ctx.fillStyle = '#353a46';
+    const pos = tx % 13;
+    /* 楼与楼之间的间隙：暗巷（较暗） */
+    if (pos >= 11) {
+      ctx.fillStyle = '#232633';
       ctx.fillRect(px, py, W.TILE, W.TILE);
-      ctx.fillStyle = 'rgba(0,0,0,0.18)';
-      ctx.fillRect(px, py, W.TILE, 6);
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillRect(px, py, W.TILE, 3);
       return;
     }
-    /* 近景立面：按街区配色，展示窗户 / 店招 / 门 */
-    const block = Math.floor(tx / 16);
-    const pals = [['#c96a5a', '#e8b0a0'], ['#6a8f6a', '#a8c8a0'], ['#7a6f9a', '#b0a8d0'], ['#c99a4a', '#e8d0a0'], ['#5a8fa0', '#a0c8d8'], ['#a05a6a', '#d0a0b0']];
-    const pal = pals[block % pals.length];
-    const dark = 1 - Math.min(0.38, (dist - 1) * 0.055);
-    ctx.fillStyle = shade(pal[0], dark);
-    ctx.fillRect(px, py, W.TILE, W.TILE);
-    /* 砖缝 */
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(px, py + 12); ctx.lineTo(px + W.TILE, py + 12);
-    ctx.moveTo(px, py + 38); ctx.lineTo(px + W.TILE, py + 38);
-    ctx.stroke();
-    /* 窗户（两排） */
-    ctx.fillStyle = shade(pal[1], dark);
-    const w1 = px + 8 + ((tx * 7) % 3) * 10;
-    ctx.fillRect(w1, py + 15, 10, 13);
-    ctx.fillRect(px + 30 + ((tx * 5) % 3) * 8, py + 15, 10, 13);
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.fillRect(w1 + 2, py + 17, 3, 9);
-    /* 店招（每 8 格一个，带灯箱） */
-    if (tx % 8 === 0) {
-      ctx.fillStyle = '#3a2c20';
-      ctx.fillRect(px + 4, py + 3, W.TILE - 8, 8);
-      ctx.fillStyle = '#ffe8a0';
-      ctx.fillRect(px + 6, py + 4, W.TILE - 12, 6);
-      ctx.fillStyle = 'rgba(255,235,170,0.35)';
-      ctx.fillRect(px + 6, py + 4, W.TILE - 12, 2);
+    if (dist > 15) {
+      /* 远景屋顶剪影 + 水箱/天线 */
+      ctx.fillStyle = '#313845';
+      ctx.fillRect(px, py, W.TILE, W.TILE);
+      if ((tx * 3 + ty) % 11 === 0) {
+        ctx.fillStyle = '#47516a';
+        ctx.fillRect(px + 10, py + 4, 12, 10);
+        ctx.fillRect(px + 14, py - 2, 4, 6);
+      }
+      return;
     }
-    /* 底层门面 / 遮阳篷 */
-    if (tx % 4 === 2) {
-      ctx.fillStyle = shade('#4a3a2c', dark);
-      ctx.fillRect(px + 6, py + 40, W.TILE - 12, 8);
+    /* 楼栋配色：每 13 格一栋，颜色各异 */
+    const block = Math.floor(tx / 13);
+    const pals = [
+      ['#c98a6a', '#e8c0a8', '#8a5a44'],
+      ['#8a9ac0', '#b8c8e8', '#5a6a8a'],
+      ['#a0c0a0', '#c8e0c8', '#6a8a6a'],
+      ['#c0a080', '#e0c8a8', '#8a6a50'],
+      ['#b08aa0', '#d0b0c8', '#7a5a70'],
+      ['#9aa8b0', '#c0d0d8', '#6a7a88'],
+    ];
+    const pal = pals[block % pals.length];
+    const dark = 1 - Math.min(0.45, (dist - 6) * 0.05);
+    const main = shade(pal[0], dark), light = shade(pal[1], dark), trim = shade(pal[2], dark);
+    ctx.fillStyle = main;
+    ctx.fillRect(px, py, W.TILE, W.TILE);
+    /* 楼层分隔线 */
+    ctx.fillStyle = trim;
+    ctx.fillRect(px, py + 12, W.TILE, 2);
+    ctx.fillRect(px, py + 30, W.TILE, 2);
+    /* 窗户网格：每层两扇，部分亮灯 */
+    for (let f = 0; f < 2; f++) {
+      const wy = py + 4 + f * 18;
+      const lit1 = U.hash2(tx * 7 + f, ty * 5 + f) > 0.5;
+      const lit2 = U.hash2(tx * 13 + f, ty * 11 + f) > 0.5;
+      ctx.fillStyle = light;
+      ctx.fillRect(px + 6, wy, 10, 8);
+      ctx.fillRect(px + 30, wy, 10, 8);
+      if (lit1) { ctx.fillStyle = '#ffd98a'; ctx.fillRect(px + 6, wy, 10, 8); ctx.fillStyle = 'rgba(255,220,140,0.4)'; ctx.fillRect(px + 6, wy, 10, 2); }
+      if (lit2) { ctx.fillStyle = '#ffd98a'; ctx.fillRect(px + 30, wy, 10, 8); ctx.fillStyle = 'rgba(255,220,140,0.4)'; ctx.fillRect(px + 30, wy, 10, 2); }
+    }
+    /* 阳台带 */
+    ctx.fillStyle = trim;
+    ctx.fillRect(px, py + 26, W.TILE, 2);
+    /* 空调外机 */
+    if (tx % 4 === 1) {
+      ctx.fillStyle = shade('#6a7078', dark);
+      ctx.fillRect(px + 20, py + 16, 10, 8);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(px + 21, py + 17, 8, 2);
+    }
+    /* 靠近街道的底层：入口雨篷 + 门 */
+    if (dist <= 7) {
+      ctx.fillStyle = trim;
+      ctx.fillRect(px + 10, py + 40, 28, 5);
+      ctx.fillStyle = '#2c2018';
+      ctx.fillRect(px + 16, py + 42, 16, 6);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(px + 18, py + 43, 5, 4);
     }
   }
 
@@ -537,6 +563,43 @@
       rr(ctx, fx - 48, fy - 30, 96, 15, 7); ctx.fill();
       ctx.fillStyle = col;
       ctx.fillText('⛩ ' + (f.label || '') + ' Lv' + f.minLevel, fx, fy - 19);
+    } else if (f.type === 'trashcan') {
+      /* 小型垃圾桶 */
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.ellipse(fx, fy + 8, 9, 4, 0, 0, U.TAU); ctx.fill();
+      ctx.fillStyle = '#6a8f8f';
+      rr(ctx, fx - 7, fy - 8, 14, 16, 3); ctx.fill();
+      ctx.fillStyle = '#5a7a7a';
+      ctx.fillRect(fx - 7, fy - 8, 14, 4);
+      ctx.fillStyle = '#7aa8a8';
+      ctx.fillRect(fx - 4, fy + 2, 8, 3);
+      ctx.fillStyle = '#3a4a4a';
+      ctx.fillRect(fx - 1, fy - 13, 2, 5);
+      ctx.fillStyle = '#5a7a7a';
+      rr(ctx, fx - 8, fy - 15, 16, 3, 1.5); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(fx - 6, fy - 14, 4, 1.4);
+    } else if (f.type === 'dumpster') {
+      /* 大型垃圾箱 */
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(fx, fy + 13, 20, 6, 0, 0, U.TAU); ctx.fill();
+      ctx.fillStyle = '#4a7a5a';
+      rr(ctx, fx - 18, fy - 14, 36, 27, 3); ctx.fill();
+      ctx.fillStyle = '#3a6a4a';
+      ctx.fillRect(fx - 18, fy - 14, 36, 5);
+      ctx.fillStyle = '#5a9a6a';
+      ctx.fillRect(fx - 14, fy - 4, 28, 4);
+      ctx.fillStyle = '#2a4a3a';
+      ctx.fillRect(fx - 18, fy + 9, 36, 3);
+      ctx.fillStyle = '#2a2a30';
+      ctx.beginPath(); ctx.arc(fx - 12, fy + 14, 3, 0, U.TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(fx + 12, fy + 14, 3, 0, U.TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,240,200,0.5)';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('★', fx - 6, fy - 6);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(fx - 16, fy - 12, 10, 3);
     }
   }
 
@@ -596,6 +659,8 @@
       if (e.type === 'boar') drawBoar(ctx, sx, sy, e);
       else if (e.type === 'fox') drawFox(ctx, sx, sy, e);
       else if (e.type === 'viper') drawViper(ctx, sx, sy, e);
+    } else if (e.kind === 'straydog') {
+      drawDog(ctx, sx, sy, e);
     } else if (e.kind === 'companion') {
       drawCompanion(ctx, sx, sy, e, view);
     }
@@ -1433,7 +1498,7 @@
     if (!p || p.inCave) return;
     const px = p.x - cam.x, py = p.y - cam.y;
     /* 世界内的可互动物品 */
-    const f = Game.world.findNearest(['gate', 'berry', 'catnip', 'herbs', 'spring', 'cave'], p.x, p.y, 90);
+    const f = Game.world.findNearest(['gate', 'berry', 'catnip', 'herbs', 'spring', 'cave', 'trashcan', 'dumpster'], p.x, p.y, 90);
     if (f) {
       const fx = (f.tx + 0.5) * W.TILE - cam.x;
       const fy = (f.ty + 0.5) * W.TILE - cam.y - 34;
@@ -1443,7 +1508,8 @@
             : f.type === 'catnip' ? '拾取'
               : f.type === 'herbs' ? '拾取'
                 : f.type === 'spring' ? '喝水'
-                  : '进入';
+                  : f.type === 'trashcan' || f.type === 'dumpster' ? '翻垃圾'
+                    : '进入';
         drawFPrompt(ctx, fx, fy, lbl);
       }
     } else if (Game.world.isNearWater(p.x, p.y)) {
