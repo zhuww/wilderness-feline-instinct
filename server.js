@@ -21,30 +21,60 @@ const MIME = {
 };
 
 function handler(req, res) {
-  let urlPath;
   try {
-    urlPath = decodeURIComponent(req.url.split('?')[0]);
-  } catch (e) {
-    res.writeHead(400); res.end('Bad request'); return;
-  }
-  if (urlPath === '/') urlPath = '/index.html';
-  const filePath = path.normalize(path.join(root, urlPath));
-  if (!filePath.startsWith(root)) {
-    res.writeHead(403); res.end('Forbidden'); return;
-  }
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
+    let urlPath;
+    try {
+      urlPath = decodeURIComponent(req.url.split('?')[0]);
+    } catch (e) {
+      res.writeHead(400); res.end('Bad request'); return;
+    }
+    // Reject NUL and other control characters (raw bytes, decoded path or
+    // decoded query) before any path/fs processing — prevents the fs DoS.
+    let decodedQuery = '';
+    try {
+      const qi = req.url.indexOf('?');
+      if (qi !== -1) decodedQuery = decodeURIComponent(req.url.slice(qi + 1));
+    } catch (e) { /* undecodable query: harmless, never touches fs */ }
+    if (/[\x00-\x1f\x7f]/.test(req.url) || /[\x00-\x1f\x7f]/.test(urlPath) || /[\x00-\x1f\x7f]/.test(decodedQuery)) {
+      res.writeHead(400); res.end('Bad request'); return;
+    }
+    if (urlPath === '/') urlPath = '/index.html';
+    const filePath = path.normalize(path.join(root, urlPath));
+    // Exact root boundary: a plain startsWith(root) prefix test lets sibling
+    // directories with the same prefix (e.g. test_project_backup) slip through.
+    const rel = path.relative(root, filePath);
+    if (rel === '..' || rel.startsWith('..' + path.sep) || path.isAbsolute(rel)) {
+      res.writeHead(403); res.end('Forbidden'); return;
+    }
+    // Refuse hidden files/directories (leading-dot segments, e.g. .git).
+    if (urlPath.split('/').some((s) => s.startsWith('.') && s !== '.' && s !== '..')) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('404 Not Found');
       return;
     }
-    res.writeHead(200, {
-      'Content-Type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-      'Pragma': 'no-cache',
+    fs.readFile(filePath, (err, data) => {
+      try {
+        if (err) {
+          res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('404 Not Found');
+          return;
+        }
+        res.writeHead(200, {
+          'Content-Type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'X-Content-Type-Options': 'nosniff',
+        });
+        res.end(data);
+      } catch (e) {
+        if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('500 Internal Server Error');
+      }
     });
-    res.end(data);
-  });
+  } catch (e) {
+    if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('500 Internal Server Error');
+  }
 }
 
 const ports = [8080, 8081, 8082, 8090, 8123];

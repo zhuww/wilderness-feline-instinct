@@ -80,7 +80,7 @@
           const target = findSpot(p.x, p.y, 90, 210) || { x: p.x, y: p.y };
           ch.entities.push({
             kind: 'rival', x: s.x, y: s.y, r: 12, speed: 105, dir: Math.random() * U.TAU,
-            animT: Math.random() * 10, hp: 2, state: 'march', target,
+            animT: Math.random() * 10, hp: 2 + Math.floor((p.level - 1) / 4), state: 'march', target,
             markT: U.randRange(3, 6), swatCd: 0, scentT: U.randRange(0.2, 0.8), alive: true,
             colorIdx: U.randInt(0, 2),
           });
@@ -103,6 +103,9 @@
         break;
       }
       case 'storm': {
+        /* 记录进入风暴前的天气，结束时恢复，避免天气永久卡在 rain（低30） */
+        c.prevWeather = Game.state.weather;
+        c.prevWeatherT = Game.state.weatherT;
         Game.ui.log('⛈️ 暴雨雷电来袭——快找掩护！', 'danger');
         Game.sfx && Game.sfx.thunder();
         Game.state.weather = 'rain';
@@ -119,7 +122,7 @@
           if (!s) continue;
           ch.entities.push({
             kind: 'viper', x: s.x, y: s.y, r: 7, speed: 56, dir: Math.random() * U.TAU,
-            animT: Math.random() * 10, hp: 12, dmg: 10, state: 'chase',
+            animT: Math.random() * 10, hp: Game.entities.scaledHp(12), dmg: Game.entities.scaledDmg(10), state: 'chase',
             attackCd: 0, wanderT: U.randRange(0.5, 2), scentT: U.randRange(0.2, 0.8), alive: true,
           });
         }
@@ -135,7 +138,7 @@
           if (!s) continue;
           ch.entities.push({
             kind: 'wolf', x: s.x, y: s.y, r: 14, speed: 196, dir: Math.random() * U.TAU,
-            animT: Math.random() * 10, hp: 2, dmg: 12, state: 'chase',
+            animT: Math.random() * 10, hp: 2 + Math.floor((p.level - 1) / 4), dmg: Game.entities.scaledDmg(12), state: 'chase',
             attackCd: 0, staggerT: 0, scentT: U.randRange(0.2, 0.8), alive: true,
           });
         }
@@ -273,8 +276,9 @@
     const dp = U.dist(e.x, e.y, p.x, p.y);
     if (dp < 36 && e.swatCd <= 0) {
       e.swatCd = 2.5;
-      Game.entities.damagePlayer(5);
-      Game.ui.log('🐈‍⬛ 对手猫挠了你一下！（-5 生命）', 'danger');
+      const swatDmg = Game.entities.scaledDmg(5);
+      Game.entities.damagePlayer(swatDmg);
+      Game.ui.log('🐈‍⬛ 对手猫挠了你一下！（-' + swatDmg + ' 生命）', 'danger');
     }
   }
 
@@ -299,11 +303,10 @@
       return;
     }
     const dp = U.dist(e.x, e.y, p.x, p.y);
-    /* detection — sneak + tall grass hides you from the dog */
-    let detect = 430;
-    if (p.state === 'sneak' && p.tallGrass) detect = 150;
-    else if (p.state === 'sneak') detect = 260;
-    else if (p.tallGrass) detect = 340;
+    /* detection — 潜行侦测统一（中18）：改用 entities 导出的 sneakFactor 系数，
+       与捕食者/流浪狗同一套规则（潜行+高草 0.35 / 潜行 0.55 / 高草 0.8，含 camo 加成），
+       删除本地硬编码分支；430 为狗的基础侦测半径 */
+    let detect = 430 * (Game.entities.sneakFactor ? Game.entities.sneakFactor() : 1);
 
     if (e.staggerT > 0) {
       e.state = 'search';
@@ -330,8 +333,9 @@
       if (dp < e.r + p.r + 6 && e.attackCd <= 0) {
         e.attackCd = 1.3;
         e.bites++;
-        Game.entities.damagePlayer(14);
-        Game.ui.log('🐕 野狗咬了你！（-14 生命）', 'danger');
+        const biteDmg = Game.entities.scaledDmg(14);
+        Game.entities.damagePlayer(biteDmg);
+        Game.ui.log('🐕 野狗咬了你！（-' + biteDmg + ' 生命）', 'danger');
         Game.ui.redFlash && Game.ui.redFlash();
         Game.ui.shake && Game.ui.shake();
         if (e.bites >= 2) {
@@ -377,8 +381,9 @@
       e.y += Math.sin(e.dir) * e.speed * dt;
       if (dp < e.r + p.r + 6 && e.attackCd <= 0) {
         e.attackCd = 1.2;
-        Game.entities.damagePlayer(10);
-        Game.ui.log('🐍 毒蛇咬了你！（-10 生命）', 'danger');
+        const biteDmg = Game.entities.scaledDmg(10);
+        Game.entities.damagePlayer(biteDmg);
+        Game.ui.log('🐍 毒蛇咬了你！（-' + biteDmg + ' 生命）', 'danger');
       }
     } else {
       e.state = 'wander';
@@ -409,10 +414,9 @@
     }
     if (e.staggerT > 0) return;
     const dp = U.dist(e.x, e.y, p.x, p.y);
-    let detect = 400;
-    if (p.state === 'sneak' && p.tallGrass) detect = 150;
-    else if (p.state === 'sneak') detect = 260;
-    else if (p.tallGrass) detect = 320;
+    /* detection — 潜行侦测统一（中18）：与 updateDog 相同，统一使用 sneakFactor 系数；
+       400 为狼的基础侦测半径 */
+    let detect = 400 * (Game.entities.sneakFactor ? Game.entities.sneakFactor() : 1);
     if (dp < detect) {
       e.state = 'chase';
       e.dir = Math.atan2(p.y - e.y, p.x - e.x);
@@ -452,8 +456,9 @@
     const dp = U.dist(e.x, e.y, p.x, p.y);
     if (dp < e.r + p.r + 4 && e.damageCd <= 0) {
       e.damageCd = 1.0;
-      Game.entities.damagePlayer(10);
-      Game.ui.log('🐗 狂奔的野猪踩了你！（-10 生命）', 'danger');
+      const trample = Game.entities.scaledDmg(10);
+      Game.entities.damagePlayer(trample);
+      Game.ui.log('🐗 狂奔的野猪踩了你！（-' + trample + ' 生命）', 'danger');
     }
     /* kick up dust */
     if (Math.random() < dt * 8) {
@@ -474,8 +479,9 @@
         Game.particles.spawn({ x: eagle.tx, y: eagle.ty, kind: 'puff', size: 14, color: 'rgba(230,220,200,0.6)', life: 0.4 });
         Game.sfx && Game.sfx.pounce();
         if (!p.inCave && d < 62) {
-          Game.entities.damagePlayer(10);
-          Game.ui.log('🦅 鹰爪抓伤了你！（-10 生命）', 'danger');
+          const clawDmg = Game.entities.scaledDmg(10);
+          Game.entities.damagePlayer(clawDmg);
+          Game.ui.log('🦅 鹰爪抓伤了你！（-' + clawDmg + ' 生命）', 'danger');
         } else if (!p.inCave) {
           Game.ui.log('🦅 鹰从你身边俯冲掠过！', 'info');
         }
@@ -528,8 +534,9 @@
         Game.sfx && Game.sfx.thunder();
         if (!p.inCave) {
           if (d < 150) {
-            Game.entities.damagePlayer(12);
-            Game.ui.log('⚡ 闪电劈在你附近！（-12 生命）', 'danger');
+            const boltDmg = Game.entities.scaledDmg(12);
+            Game.entities.damagePlayer(boltDmg);
+            Game.ui.log('⚡ 闪电劈在你附近！（-' + boltDmg + ' 生命）', 'danger');
             p.hurtT = 1.2;
           } else {
             Game.ui.log('⚡ 一道闪电在不远处炸响！', 'danger');
@@ -562,7 +569,15 @@
   function checkEnd() {
     const c = ch.current;
     if (!c || c.ended) return;
-    const remain = (kind) => ch.entities.filter((e) => e.kind === kind && e.alive).length;
+    /* 存活计数：原地遍历计数，避免每帧 filter 分配临时数组（低25） */
+    const remain = (kind) => {
+      let n = 0;
+      for (let i = 0; i < ch.entities.length; i++) {
+        const e = ch.entities[i];
+        if (e.kind === kind && e.alive) n++;
+      }
+      return n;
+    };
 
     if (c.type === 'rival') {
       if (remain('rival') === 0) { win(); return; }
@@ -640,9 +655,8 @@
       p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + mood(8));
       Game.ui.log('🏆 你找到了穿过浓雾的路！（+' + mood(8) + ' 心情）', 'good');
     }
-    /* growth: XP + 技能点 */
-    Game.entities.addXp(30);
-    Game.entities.grantSkillPoint(1);
+    /* growth: XP（随难度曲线缩放，技能点只在升级时获得） */
+    Game.entities.addXp(Game.entities.scaledXp ? Game.entities.scaledXp(30) : 30);
     if (Game.state && Game.state.journey) Game.state.journey.challengesWon++;
     Game.sfx && Game.sfx.craft();
     endChallenge();
@@ -670,6 +684,17 @@
 
   function endChallenge() {
     Game.ui.clearChallenge && Game.ui.clearChallenge();
+    /* 风暴挑战结束时恢复进入前的天气（低30）：
+       仅当天气仍被风暴锁在 rain 时恢复（win 已把天气置为 clear 时不覆盖奖励）；
+       恢复为进入前值并沿用剩余 weatherT，原值缺失时把 weatherT 置 0 让主循环重新 rollWeather */
+    if (ch.current && ch.current.type === 'storm' && Game.state.weather === 'rain') {
+      if (ch.current.prevWeather) {
+        Game.state.weather = ch.current.prevWeather;
+        Game.state.weatherT = ch.current.prevWeatherT || 0;
+      } else {
+        Game.state.weatherT = 0;
+      }
+    }
     ch.entities = [];
     ch.current = null;
     strike = null;
@@ -691,7 +716,11 @@
         else if (e.kind === 'wolf') updateWolf(e, dt);
         else if (e.kind === 'stampede') updateStampede(e, dt);
       }
-      ch.entities = ch.entities.filter((e) => e.alive);
+      /* 每帧原地清理死亡实体（低25）：反向遍历标记删除，
+         避免 filter 每帧分配新数组（ch.entities 外部持有同一引用，原地删除不破坏兼容） */
+      for (let i = ch.entities.length - 1; i >= 0; i--) {
+        if (!ch.entities[i].alive) ch.entities.splice(i, 1);
+      }
       if (c.type === 'storm') updateStorm(dt);
       else if (c.type === 'eagle') updateEagle(dt);
       else if (c.type === 'fog') updateFog(dt);

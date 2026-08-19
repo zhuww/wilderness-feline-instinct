@@ -180,6 +180,18 @@
     ctx.restore();
   }
 
+  /* ------------------------------------------------------ compass 降频
+     罗盘重绘从"每帧一次"降为"每 0.2 秒最多一次"：静止场景（气味源不动、
+     朝向不变）不再每帧刷 canvas，只在内容可能变化时重绘。
+     compassT 初始为 -Infinity 表示"从未画过"，首帧立即绘制一次。 */
+  let compassT = -Infinity;
+  function maybeDrawCompass() {
+    const now = performance.now();
+    if (now - compassT < 200) return;
+    compassT = now;
+    drawCompass();
+  }
+
   /* ----------------------------------------------------------------- HUD */
   const META = {
     hp: { fill: 'm-hp', icon: '❤️', label: 'Health' },
@@ -189,6 +201,60 @@
     mood: { fill: 'm-mood', icon: '🧠', label: 'Mood' },
     wetness: { fill: 'm-wet', icon: '🌧️', label: 'Wetness' },
   };
+
+  /* ---------------------------------------------- HUD 写入降频缓存（中13）
+     静止场景（玩家不动、数值不变）下原实现每帧约 15 次 DOM 写入。这里把
+     textContent / className / style 全部"仅值变化才写"：
+     - textContent/className：缓存上次写入字符串，相同则跳过；
+     - style.width 百分比条：量化到 0.1% 精度，变化超过阈值才写；
+       血条放宽（阈值 0）保证流畅，其余条 0.3% 内抖动不写；
+     - hidden 类切换直接对照真实 classList 状态，避免与 closeCatMenu 等
+       外部操作互相覆盖缓存（防止菜单"该显不显"）。 */
+  const hudLast = Object.create(null);
+  let anonSeq = 0;
+  const anonKey = new WeakMap();
+  function keyOf(el, prop) {
+    let k = anonKey.get(el);
+    if (k === undefined) { k = '#' + (anonSeq++); anonKey.set(el, k); }
+    return k + '.' + prop;
+  }
+  function writeText(el, value) {
+    if (!el) return;
+    const key = keyOf(el, 'text');
+    if (hudLast[key] === value) return;
+    hudLast[key] = value;
+    el.textContent = value;
+  }
+  function writeClass(el, value) {
+    if (!el) return;
+    const key = keyOf(el, 'class');
+    if (hudLast[key] === value) return;
+    hudLast[key] = value;
+    el.className = value;
+  }
+  function writeStyle(el, prop, value) {
+    if (!el) return;
+    const key = keyOf(el, 'style.' + prop);
+    if (hudLast[key] === value) return;
+    hudLast[key] = value;
+    el.style[prop] = value;
+  }
+  /* 百分比条：v 量化到 0.1%；与上次写入值差值 ≤ eps 则跳过（eps=0 表示
+     任意 0.1% 变化都写，血条用；eps=0.3 表示 0.3% 内抖动不写） */
+  function writeWidth(el, pct, eps) {
+    if (!el) return;
+    const v = Math.max(0, Math.min(100, pct)).toFixed(1);
+    const key = keyOf(el, 'style.width');
+    const prev = hudLast[key];
+    if (prev !== undefined && Math.abs(parseFloat(prev) - parseFloat(v)) <= (eps || 0)) return;
+    hudLast[key] = v;
+    el.style.width = v + '%';
+  }
+  function writeHidden(el, hidden) {
+    if (!el) return;
+    if (el.classList.contains('hidden') === hidden) return;
+    if (hidden) el.classList.add('hidden'); else el.classList.remove('hidden');
+  }
 
   function updateHUD() {
     const st = Game.state;
@@ -201,15 +267,14 @@
     const hhS = String(hh).padStart(2, '0');
     const mmS = String(mm).padStart(2, '0');
     const icon = st.night > 0.6 ? '🌙' : st.night > 0.15 ? '🌆' : st.warm > 0.08 ? '🌅' : '☀️';
-    const tl = $('time-label');
-    if (tl) tl.textContent = icon + ' ' + hhS + ':' + mmS + ' · Day ' + st.day;
+    writeText($('time-label'), icon + ' ' + hhS + ':' + mmS + ' · Day ' + st.day);
     /* weather */
     const wl = $('weather-label');
     if (wl) {
       const meta = { clear: ['☀️ 晴朗', 'text-amber-200'], rain: ['🌧️ 下雨', 'text-sky-300'], mist: ['🌫️ 薄雾', 'text-slate-300'] };
       const m = meta[st.weather] || meta.clear;
-      wl.textContent = m[0];
-      wl.className = 'text-[11px] font-medium tracking-wide ' + m[1];
+      writeText(wl, m[0]);
+      writeClass(wl, 'text-[11px] font-medium tracking-wide ' + m[1]);
     }
     /* meters */
     const s = p.stats;
@@ -219,50 +284,51 @@
       const val = s[key] || 0;
       const max = s[key + 'Max'] || 100;
       const pct = Math.max(0, Math.min(100, (val / max) * 100));
-      el.style.width = pct.toFixed(1) + '%';
+      /* 血条放宽：任意 0.1% 变化即写（保持流畅）；其余条 0.3% 内抖动不写 */
+      writeWidth(el, pct, key === 'hp' ? 0 : 0.3);
       if (key === 'hp') {
-        el.style.background = pct < 30 ? 'linear-gradient(90deg,#f87171,#ef4444)' : 'linear-gradient(90deg,#fb7185,#ef4444)';
+        const low = pct < 30;
+        writeStyle(el, 'background', low ? 'linear-gradient(90deg,#f87171,#ef4444)' : 'linear-gradient(90deg,#fb7185,#ef4444)');
       }
     }
     const wetEl = $('wet-meter');
-    if (wetEl) wetEl.style.opacity = s.wetness > 3 ? '1' : '0.35';
+    if (wetEl) writeStyle(wetEl, 'opacity', s.wetness > 3 ? '1' : '0.35');
     /* level + xp */
-    const lv = $('level-label');
-    if (lv) lv.textContent = 'Lv ' + p.level;
+    writeText($('level-label'), 'Lv ' + p.level);
     const xpEl = $('m-xp');
     if (xpEl) {
       const need = Game.entities.xpToLevel(p.level);
-      xpEl.style.width = Math.min(100, (p.xp / need) * 100).toFixed(1) + '%';
+      writeWidth(xpEl, Math.min(100, (p.xp / need) * 100), 0.3);
     }
     /* summon status */
     const sc = $('summon-chip');
     if (sc) {
       const hasAdopted = Game.entities.companions.some((c) => c.adopted);
-      if (!hasAdopted) sc.textContent = '📣 无伙伴猫';
-      else if (p.summonCd > 0) sc.textContent = '📣 ' + Math.ceil(p.summonCd) + 's';
-      else sc.textContent = '📣 就绪(R)';
+      if (!hasAdopted) writeText(sc, '📣 无伙伴猫');
+      else if (p.summonCd > 0) writeText(sc, '📣 ' + Math.ceil(p.summonCd) + 's');
+      else writeText(sc, '📣 就绪(R)');
     }
     /* 当前区域 */
     const zl = $('zone-label');
     if (zl && Game.world.ZONE_INFO) {
       const zi = Game.world.ZONE_INFO[Game.state.zone];
-      zl.textContent = '⛩ ' + (zi ? zi.name : '荒野草原');
+      writeText(zl, '⛩ ' + (zi ? zi.name : '荒野草原'));
     }
     /* Boss 血条 */
     const bb = $('boss-bar');
     const boss = Game.entities.boss;
     if (bb) {
       if (boss && boss.alive && boss.aggro) {
-        bb.classList.remove('hidden');
+        writeHidden(bb, false);
         const bt = $('boss-name');
-        if (bt) bt.textContent = '👹 ' + boss.name;
+        if (bt) writeText(bt, '👹 ' + boss.name);
         const bf = $('boss-fill');
-        if (bf) bf.style.width = Math.max(0, Math.min(100, (boss.hp / boss.hpMax) * 100)).toFixed(1) + '%';
+        if (bf) writeWidth(bf, Math.max(0, Math.min(100, (boss.hp / boss.hpMax) * 100)), 0);
       } else {
-        bb.classList.add('hidden');
+        writeHidden(bb, true);
       }
     }
-    drawCompass();
+    maybeDrawCompass();
     updateCatMenu();
   }
 
@@ -289,10 +355,12 @@
       (kind === 'danger' || kind === 'combat' ? ' bg-rose-950/40 border border-rose-500/30' : ' bg-black/35 border border-white/10');
     d.textContent = msg;
     box.appendChild(d);
+    /* 单一定时器（低26）：4200ms 后一次性淡出并移除，
+       内部不再嵌套第二个 setTimeout */
     setTimeout(() => {
       d.style.opacity = '0';
       d.style.transform = 'translateX(-8px)';
-      setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 350);
+      if (d.parentNode) d.parentNode.removeChild(d);
     }, 4200);
   }
 
@@ -339,36 +407,43 @@
     const el = $('cat-menu');
     if (!el) return;
     const p = Game.entities.player;
-    if (!p || Game.ui.modalOpen) { el.classList.add('hidden'); return; }
+    if (!p || Game.ui.modalOpen) { writeHidden(el, true); return; }
     const cam = Game.state.cam;
     let best = null, bd = 120 * 120;
     for (const c of Game.entities.companions) {
       const d = U.dist2(p.x, p.y, c.x, c.y);
       if (d < bd) { bd = d; best = c; }
     }
-    if (!best) { el.classList.add('hidden'); menuCat = null; return; }
+    if (!best) { writeHidden(el, true); menuCat = null; return; }
     menuCat = best;
-    el.style.left = (best.x - cam.x) + 'px';
-    el.style.top = (best.y - cam.y - 46) + 'px';
-    el.style.transform = 'translateX(-50%)';
-    el.classList.remove('hidden');
+    /* 位置/样式均走"值变化才写"缓存；静止场景菜单不再每帧刷 style */
+    writeStyle(el, 'left', (best.x - cam.x) + 'px');
+    writeStyle(el, 'top', (best.y - cam.y - 46) + 'px');
+    writeStyle(el, 'transform', 'translateX(-50%)');
+    writeHidden(el, false);
     const feedBtn = el.querySelector('[data-action="feed"]');
     const adoptBtn = el.querySelector('[data-action="adopt"]');
     const hasFood = ['salmon', 'cooked_salmon', 'mouse'].some((id) => Game.entities.countItem(id) > 0);
     if (feedBtn) {
-      feedBtn.disabled = !hasFood;
-      feedBtn.style.opacity = hasFood ? '1' : '0.4';
+      if (feedBtn.disabled !== !hasFood) feedBtn.disabled = !hasFood;
+      writeStyle(feedBtn, 'opacity', hasFood ? '1' : '0.4');
     }
     if (adoptBtn) {
       const blocked = best.adopted || best.friendship < 60;
-      adoptBtn.disabled = blocked;
-      adoptBtn.style.opacity = blocked ? '0.4' : '1';
-      adoptBtn.textContent = best.adopted ? '🤝 已收养' : '🤝 收养';
+      if (adoptBtn.disabled !== blocked) adoptBtn.disabled = blocked;
+      writeStyle(adoptBtn, 'opacity', blocked ? '0.4' : '1');
+      writeText(adoptBtn, best.adopted ? '🤝 已收养' : '🤝 收养');
     }
   }
 
+  /* HTML 转义：& < > 双引号 单引号 全覆盖（单双引号防止属性上下文注入） */
   function esc(html) {
-    return String(html).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(html)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function refreshModals() {
@@ -381,20 +456,20 @@
         invEl.innerHTML = '<div class="text-slate-400 text-sm italic p-4 text-center">行囊空空——去采集、钓鱼、捕猎填满它吧。</div>';
       } else {
         invEl.innerHTML = p.inventory.map((it) => {
-          const def = E.ITEMS[it.id];
+          const def = Object.prototype.hasOwnProperty.call(E.ITEMS, it.id) ? E.ITEMS[it.id] : null;
           if (!def) return '';
           const usable = def.book || def.food || def.mood || def.heal || def.equip || def.zoomies;
           const equipped = def.equip && p.equipped[def.equip] === it.id;
-          const btnLabel = def.equip ? '装备' : def.book ? '📖 阅读' : '使用';
+          const btnLabel = def.equip ? (equipped ? '卸下' : '装备') : def.book ? '📖 阅读' : '使用';
           return '<div class="inv-row flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition">' +
             '<span class="text-xl w-8 text-center">' + def.icon + '</span>' +
             '<div class="flex-1 min-w-0">' +
-            '<div class="text-[13px] font-medium text-slate-100 truncate">' + esc(def.name) + (equipped ? ' <span class="text-emerald-300 text-[10px]">● equipped</span>' : '') + '</div>' +
+            '<div class="text-[13px] font-medium text-slate-100 truncate">' + esc(def.name) + (equipped ? ' <span class="text-emerald-300 text-[10px]">● 已装备</span>' : '') + '</div>' +
             '<div class="text-[11px] text-slate-400 truncate">' + esc(def.desc) + '</div>' +
             '</div>' +
-            '<span class="text-[12px] font-semibold text-slate-300 bg-black/30 px-2 py-0.5 rounded-lg">×' + it.qty + '</span>' +
+            '<span class="text-[12px] font-semibold text-slate-300 bg-black/30 px-2 py-0.5 rounded-lg">×' + esc(it.qty) + '</span>' +
             (usable
-              ? '<button data-use="' + it.id + '" class="use-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold ' + (def.book ? 'bg-amber-500/80 hover:bg-amber-400 text-black' : 'bg-sky-500/80 hover:bg-sky-400 text-white') + ' transition">' + btnLabel + '</button>'
+              ? '<button data-use="' + esc(it.id) + '" class="use-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold ' + (def.book ? 'bg-amber-500/80 hover:bg-amber-400 text-black' : 'bg-sky-500/80 hover:bg-sky-400 text-white') + ' transition">' + btnLabel + '</button>'
               : '') +
             '</div>';
         }).join('');
@@ -406,38 +481,44 @@
     const craftEl = $('craft-list');
     if (craftEl) {
       craftEl.innerHTML = E.RECIPES.map((r) => {
+        const locked = r.req && !E.hasSkill(r.req);
         const parts = Object.keys(r.parts);
         const has = parts.every((k) => E.countItem(k) >= r.parts[k]);
         const dayBlocked = r.dayOnly && Game.state.night > 0.4;
-        const can = has && !dayBlocked;
+        const can = !locked && has && !dayBlocked;
         return '<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">' +
           '<span class="text-2xl w-9 text-center">' + r.icon + '</span>' +
           '<div class="flex-1 min-w-0">' +
-          '<div class="text-[13px] font-medium text-slate-100">' + esc(r.name) + '</div>' +
+          '<div class="text-[13px] font-medium text-slate-100">' + esc(r.name) + (locked ? ' <span class="text-fuchsia-300 text-[10px]">🔒 未解锁</span>' : '') + '</div>' +
           '<div class="text-[11px] text-slate-400">' + esc(r.desc) + '</div>' +
+          (locked ? '<div class="text-[10px] text-fuchsia-300 mt-0.5">需要技能：' + esc(E.SKILL_NAMES[r.req]) + '</div>' : '') +
           '<div class="text-[11px] mt-1">' +
           parts.map((k) => {
             const def = E.ITEMS[k];
             const have = E.countItem(k);
             const need = r.parts[k];
-            return '<span class="mr-2 ' + (have >= need ? 'text-emerald-300' : 'text-rose-300') + '">' + def.icon + ' ' + have + '/' + need + '</span>';
+            return '<span class="mr-2 ' + (have >= need ? 'text-emerald-300' : 'text-rose-300') + '">' + def.icon + ' ' + esc(have) + '/' + esc(need) + '</span>';
           }).join('') +
           (dayBlocked ? '<span class="text-amber-300">🌙 需要白天</span>' : '') +
           '</div></div>' +
           '<button data-craft="' + r.id + '" class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition ' +
-          (can ? 'bg-amber-500/90 hover:bg-amber-400 text-black' : 'bg-white/10 text-slate-500 cursor-not-allowed') + '">合成</button>' +
+          (can ? 'bg-amber-500/90 hover:bg-amber-400 text-black' : 'bg-white/10 text-slate-500 cursor-not-allowed') + '">' + (locked ? '🔒' : '合成') + '</button>' +
           '</div>';
       }).join('');
       craftEl.querySelectorAll('[data-craft]').forEach((b) => {
         b.addEventListener('click', () => {
           const r = E.RECIPES.find((x) => x.id === b.getAttribute('data-craft'));
           if (!r) return;
+          if (r.req && !E.hasSkill(r.req)) {
+            Game.ui.log('🔒 需要技能【' + E.SKILL_NAMES[r.req] + '】才能合成。', 'info');
+            return;
+          }
           const parts = Object.keys(r.parts);
           const dayBlocked = r.dayOnly && Game.state.night > 0.4;
           if (!parts.every((k) => E.countItem(k) >= r.parts[k]) || dayBlocked) return;
           parts.forEach((k) => E.removeItem(k, r.parts[k]));
           E.addItem(r.id);
-          Game.ui.log('🔨 Crafted ' + E.ITEMS[r.id].name + '!', 'craft');
+          Game.ui.log('🔨 合成了 ' + E.ITEMS[r.id].name + '！', 'craft');
           Game.sfx && Game.sfx.craft();
           refreshModals();
         });
@@ -462,7 +543,7 @@
           : c.friendship >= 60
             ? '<span class="text-pink-300 font-semibold text-[11px]">可收养——走近按 F！</span>'
             : c.friendship > 0
-              ? '<span class="text-slate-400 text-[11px]">' + Math.round(c.friendship) + '/60 ♥ 可收养</span>'
+              ? '<span class="text-slate-400 text-[11px]">' + esc(Math.round(c.friendship)) + '/60 ♥ 可收养</span>'
               : '<span class="text-slate-500 text-[11px]">害羞——先抚摸</span>';
         return '<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">' +
           '<span class="text-2xl w-9 text-center">🐈</span>' +
@@ -470,11 +551,11 @@
           '<div class="flex items-center gap-2 flex-wrap"><span class="text-[13px] font-semibold text-slate-100">' + esc(c.name) + '</span>' + status + '</div>' +
           '<div class="h-2 w-full max-w-[160px] rounded-full bg-black/40 mt-1.5 overflow-hidden"><div class="h-full rounded-full ' +
           (c.friendship > 55 ? 'bg-gradient-to-r from-pink-400 to-fuchsia-400' : 'bg-gradient-to-r from-rose-300 to-pink-400') +
-          '" style="width:' + c.friendship + '%"></div></div>' +
+          '" style="width:' + esc(c.friendship) + '%"></div></div>' +
           '<div class="text-[11px] text-slate-400 mt-1">' + perkHtml + '</div>' +
           '</div>' +
           '<div class="text-right text-[11px] text-slate-400 leading-tight">' +
-          (c.friendship >= 100 ? '❤️ 挚友' : c.friendship > 0 ? '♥ ' + Math.round(c.friendship) + '%' : '— 害羞 —') +
+          (c.friendship >= 100 ? '❤️ 挚友' : c.friendship > 0 ? '♥ ' + esc(Math.round(c.friendship)) + '%' : '— 害羞 —') +
           '</div>' +
           '</div>';
       };
@@ -497,38 +578,35 @@
     if (growthEl) {
       const j = Game.state.journey || {};
       const need = E.xpToLevel(p.level);
-      const hpBonus = (p.level - 1) * 8;
-      const stBonus = (p.level - 1) * 4;
-      /* 三大发展分支的技能树 */
+      const hpBonus = (p.level - 1) * 10;
+      const stBonus = (p.level - 1) * 6;
+      const regenBonus = Math.min(120, Math.round((p.level - 1) * 4));
+      /* 五大发展分支的技能树（猎手/厚皮/活力/闪避/巧匠可重复加点） */
       const branches = [
-        ['🎯 狩猎', [
-          ['hunter', '猎手本能', '扑击伤害 +15%，捕捉范围更大'],
-          ['keen', '敏锐嗅觉', '嗅探范围 +40%，气味更浓密'],
-          ['angler', '渔夫之尾', '钓鱼必定成功'],
-        ]],
-        ['🛡️ 生存', [
-          ['swift', '疾风快爪', '移动速度 +10%，体力回复 +25%'],
-          ['thick', '厚实毛皮', '受到的伤害 -25%'],
-          ['camo', '树叶伪装', '高草丛隐匿效果翻倍，潜行更省体力'],
-        ]],
-        ['🐈 羁绊', [
-          ['guardian', '守护之力', '友情获取 +50%，狩猎协助 +4'],
-          ['brave', '无畏之心', '心情上限 +25%，挑战奖励 +50%'],
-          ['summon', '召唤强化', '召唤时间 25→40 秒，冷却 5→3 分钟'],
-        ]],
+        ['🎯 狩猎', ['hunter', 'leap', 'keen', 'angler']],
+        ['🛡️ 生存', ['swift', 'thick', 'camo', 'vitality']],
+        ['🐈 羁绊', ['guardian', 'brave', 'summon']],
+        ['💨 闪避', ['dodge', 'agile']],
+        ['🔨 制作', ['craft', 'alchemist']],
       ];
-      const branchHtml = branches.map(([title, skills]) => {
-        const rows = skills.map(([id, name, desc]) => {
-          const on = p.skills.includes(id);
-          const can = !on && p.skillPoints > 0;
+      const branchHtml = branches.map(([title, ids]) => {
+        const rows = ids.map((id) => {
+          const def = E.SKILL_DEFS[id];
+          if (!def) return '';
+          const lv = E.skillLevel(id);
+          const on = lv > 0;
+          const maxed = lv >= def.max;
+          const can = !maxed && p.skillPoints > 0;
+          const btn = maxed
+            ? '<span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300">满级</span>'
+            : '<button data-learn="' + id + '" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition ' + (can ? 'bg-amber-500/90 hover:bg-amber-400 text-black' : 'bg-white/10 text-slate-500 cursor-not-allowed') + '">' + (on ? '升级' : '学习') + '</button>';
           return '<div class="flex items-center gap-2 px-3 py-2 rounded-xl border ' + (on ? 'bg-amber-500/10 border-amber-400/40' : 'bg-white/5 border-white/10 opacity-70') + '">' +
             '<span class="text-lg w-7 text-center">' + (on ? '✅' : '⭐') + '</span>' +
             '<div class="flex-1 min-w-0">' +
-            '<div class="text-[12.5px] font-semibold ' + (on ? 'text-amber-200' : 'text-slate-300') + '">' + esc(name) + (on ? ' <span class="text-emerald-300 text-[10px]">已掌握</span>' : '') + '</div>' +
-            '<div class="text-[11px] text-slate-400">' + esc(desc) + '</div>' +
-            '</div>' +
-            (on ? '' : '<button data-learn="' + id + '" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition ' + (can ? 'bg-amber-500/90 hover:bg-amber-400 text-black' : 'bg-white/10 text-slate-500 cursor-not-allowed') + '">学习</button>') +
-            '</div>';
+            '<div class="text-[12.5px] font-semibold ' + (on ? 'text-amber-200' : 'text-slate-300') + '">' + esc(def.name) +
+            (on ? ' <span class="text-emerald-300 text-[10px]">Lv.' + esc(lv) + '/' + esc(def.max) + '</span>' : '') + '</div>' +
+            '<div class="text-[11px] text-slate-400">' + esc(def.desc) + '</div>' +
+            '</div>' + btn + '</div>';
         }).join('');
         return '<div class="mb-2"><div class="text-[11px] font-bold text-sky-300 uppercase tracking-wider px-1 pt-1">' + title + '</div><div class="space-y-1.5">' + rows + '</div></div>';
       }).join('');
@@ -544,19 +622,19 @@
       const journeyHtml = journey.map(([ic, nm, v]) =>
         '<div class="flex items-center justify-between px-3 py-1.5 rounded-lg bg-white/5">' +
         '<span class="text-[12px] text-slate-300">' + ic + ' ' + nm + '</span>' +
-        '<span class="text-[12px] font-bold text-white">' + v + '</span></div>'
+        '<span class="text-[12px] font-bold text-white">' + esc(v) + '</span></div>'
       ).join('');
       growthEl.innerHTML =
         '<div class="hud-panel rounded-2xl p-3 mb-3">' +
-        '<div class="flex items-center justify-between"><span class="text-[14px] font-bold text-amber-300">Lv ' + p.level + '</span>' +
-        '<span class="text-[12px] font-bold text-fuchsia-300">技能点：' + p.skillPoints + '</span>' +
-        '<span class="text-[11px] text-slate-400">' + p.xp + ' / ' + need + ' 经验</span></div>' +
-        '<div class="h-2.5 rounded-full bg-black/40 mt-2 overflow-hidden"><div class="h-full rounded-full" style="width:' + Math.min(100, (p.xp / need) * 100).toFixed(1) + '%;background:linear-gradient(90deg,#fbbf24,#f59e0b)"></div></div>' +
-        '<div class="text-[11px] text-slate-400 mt-2">等级加成：最大生命 +' + hpBonus + ' · 最大体力 +' + stBonus + ' · 最大心情 +' + stBonus + '</div>' +
-        '<div class="text-[11px] text-slate-400">心情暴击率：<b class="text-amber-300">' + Math.round(E.critChance() * 100) + '%</b>（心情越好暴击越高，双倍伤害）</div>' +
-        '<div class="text-[11px] text-slate-500">升级、挑战胜利、击败 Boss 获得技能点，自由点亮三大分支。</div>' +
+        '<div class="flex items-center justify-between"><span class="text-[14px] font-bold text-amber-300">Lv ' + esc(p.level) + '</span>' +
+        '<span class="text-[12px] font-bold text-fuchsia-300">技能点：' + esc(p.skillPoints) + '</span>' +
+        '<span class="text-[11px] text-slate-400">' + esc(p.xp) + ' / ' + esc(need) + ' 经验</span></div>' +
+        '<div class="h-2.5 rounded-full bg-black/40 mt-2 overflow-hidden"><div class="h-full rounded-full" style="width:' + esc(Math.min(100, (p.xp / need) * 100).toFixed(1)) + '%;background:linear-gradient(90deg,#fbbf24,#f59e0b)"></div></div>' +
+        '<div class="text-[11px] text-slate-400 mt-2">等级加成：最大生命 +' + esc(hpBonus) + ' · 最大体力 +' + esc(stBonus) + ' · 最大心情 +' + esc(stBonus) + ' · 体力回复 +' + esc(regenBonus) + '%</div>' +
+        '<div class="text-[11px] text-slate-400">心情暴击率：<b class="text-amber-300">' + esc(Math.round(E.critChance() * 100)) + '%</b>（心情越好暴击越高，双倍伤害）</div>' +
+        '<div class="text-[11px] text-slate-500">技能点只在升级时获得——每升 1 级 +1 点，请谨慎规划加点路线；猎手本能 / 飞扑袭杀 / 厚实毛皮 / 活力充盈 / 灵动闪避 / 能工巧匠可重复加点。</div>' +
         '</div>' +
-        '<div class="text-[11px] font-bold text-amber-300 uppercase tracking-wider px-1 pt-1">📖 技能树（' + p.skills.length + '/9）</div>' +
+        '<div class="text-[11px] font-bold text-amber-300 uppercase tracking-wider px-1 pt-1">📖 技能树（已投入 ' + esc(p.skills.length) + ' 点）</div>' +
         branchHtml +
         '<div class="text-[11px] font-bold text-emerald-300 uppercase tracking-wider px-1 pt-3">🌱 成长轨迹</div>' +
         '<div class="space-y-1">' + journeyHtml + '</div>';

@@ -26,8 +26,24 @@
     fat: { name: '野猪油', icon: '🧈', desc: '肥厚油腻的脂肪。' },
     herb_salve: { name: '草药膏', icon: '🧴', heal: 32, desc: '敷在伤口上恢复 32 点生命。' },
     leaf_hat: { name: '树叶雨帽', icon: '🍀', equip: 'hat', desc: '雨天防湿，且每次受伤 -2 点（防御）。' },
-    fishbone_collar: { name: '鱼骨项圈', icon: '📿', equip: 'collar', desc: '攻击 +3，流浪猫更快信任你。' },
-    cat_tooth_necklace: { name: '猫牙项链', icon: '🦷', equip: 'collar', desc: '攻击 +20%：对敌人造成更高伤害。' },
+    fishbone_collar: { name: '鱼骨项圈', icon: '📿', equip: 'collar', desc: '攻击 +3（巧匠每级再 +1），流浪猫更快信任你。' },
+    cat_tooth_necklace: { name: '猫牙项链', icon: '🦷', equip: 'collar', desc: '攻击 +20%（巧匠每级再 +4%）：对敌人造成更高伤害。' },
+    catnip_tea: { name: '猫薄荷茶', icon: '☕', stamina: 25, mood: 8, desc: '热茶下肚，体力瞬间恢复 25 点。' },
+    energy_potion: { name: '活力药剂', icon: '🧪', stamina: 55, desc: '炼金精华，瞬间恢复 55 点体力。' },
+    gem_ruby: { name: '红宝石', icon: '🔴', desc: '火山熔岩中凝出的炽红宝石，珍贵材料。' },
+    gem_sapphire: { name: '蓝宝石', icon: '🔵', desc: '幽暗水域深处的深邃蓝宝石，珍贵材料。' },
+    gem_jade: { name: '翡翠', icon: '🟢', desc: '古林根脉孕育的翠绿美玉，珍贵材料。' },
+    flame_ruby_pendant: { name: '火焰红宝石吊坠', icon: '🔥', equip: 'collar', desc: '攻击 +40%（巧匠每级再 +8%）——比猫牙项链更强。' },
+    sapphire_star: { name: '蓝宝石星坠', icon: '💠', equip: 'collar', desc: '攻击 +25% 且暴击率 +12%。' },
+    jade_charm: { name: '翡翠护身符', icon: '🧿', equip: 'hat', desc: '每次受伤 -6（巧匠每级再 -1）——坚硬如玉。' },
+    /* 高级场景草药与道具 */
+    cactus_fruit: { name: '仙人掌果', icon: '🌵', water: 30, food: 5, heal: 2, desc: '荒漠里的绿洲果实：+30 水分。' },
+    dragon_herb: { name: '龙血草', icon: '🌹', heal: 18, food: 8, desc: '火山岩缝中长出的殷红草药，直接吃回 18 生命。' },
+    reishi: { name: '灵芝', icon: '🍄', heal: 12, mood: 10, desc: '古树上的灵药：回 12 生命、+10 心情。' },
+    vine_strand: { name: '藤条', icon: '🪵', desc: '幽暗森林的坚韧藤条，编制护甲的材料。' },
+    vine_armor: { name: '藤甲', icon: '🛡️', equip: 'hat', desc: '每次受伤 -7（巧匠每级再 -1），雨中几乎不湿身。' },
+    stone_claw: { name: '石爪', icon: '🐾', equip: 'claw', desc: '攻击 +8（巧匠每级再 +2）——爪尖镶满宝石碎屑。' },
+    dragon_potion: { name: '龙血药剂', icon: '🧫', heal: 60, desc: '沸腾的龙血精华，瞬间恢复 60 点生命。' },
     /* skill books — read them from the satchel to learn the skill forever */
     book_hunter: { name: '猎手本能', icon: '📘', book: true, skill: 'hunter', desc: '扑击伤害 +15%，捕捉范围更大。' },
     book_swift: { name: '疾风快爪', icon: '📗', book: true, skill: 'swift', desc: '移动速度 +10%，体力回复 +25%。' },
@@ -39,13 +55,29 @@
     book_camo: { name: '树叶伪装', icon: '📘', book: true, skill: 'camo', desc: '高草丛隐匿效果翻倍，潜行更省体力。' },
   };
 
+  /* 物品安全查询：只读自有属性，杜绝 __proto__ / constructor 等原型链查找（低 23）；
+     未命中返回 undefined，调用方按既有容错逻辑处理（如 if (!def) return;） */
+  function itemDef(id) {
+    return Object.prototype.hasOwnProperty.call(ITEMS, id) ? ITEMS[id] : undefined;
+  }
+
   const RECIPES = [
     { id: 'leaf_hat', name: '树叶雨帽', icon: '🍀', parts: { leaves: 3, vines: 2 }, desc: '雨天防湿，且每次受伤 -2 点（防御）。' },
     { id: 'fishbone_collar', name: '鱼骨项圈', icon: '📿', parts: { fishbone: 3, sinew: 1 }, desc: '攻击 +3，流浪猫更快信任你。' },
     { id: 'cat_tooth_necklace', name: '猫牙项链', icon: '🦷', parts: { fishbone: 4, sinew: 2 }, desc: '攻击 +20%，对敌人造成更高伤害。' },
     { id: 'dried_catnip', name: '干猫薄荷', icon: '🍃', parts: { catnip: 2 }, dayOnly: true, desc: '强力提神 — 需要白天晾晒。' },
     { id: 'herb_salve', name: '草药膏', icon: '🧴', parts: { herbs: 3, fat: 1 }, desc: '敷在伤口上恢复 32 点生命。' },
+    { id: 'catnip_tea', name: '猫薄荷茶', icon: '☕', parts: { catnip: 1, herbs: 1 }, desc: '体力 +25，瞬间见效。' },
+    { id: 'energy_potion', name: '活力药剂', icon: '🧪', parts: { catnip: 2, herbs: 2, fat: 1 }, req: 'alchemist', desc: '体力 +55。需要【草药炼金】技能解锁。' },
+    { id: 'flame_ruby_pendant', name: '火焰红宝石吊坠', icon: '🔥', parts: { gem_ruby: 1, fishbone: 2, sinew: 1 }, desc: '攻击 +40%——顶级饰品。' },
+    { id: 'sapphire_star', name: '蓝宝石星坠', icon: '💠', parts: { gem_sapphire: 1, fishbone: 2, sinew: 1 }, desc: '攻击 +25%、暴击 +12%。' },
+    { id: 'jade_charm', name: '翡翠护身符', icon: '🧿', parts: { gem_jade: 1, leaves: 2, vines: 2 }, desc: '每次受伤 -6。' },
+    { id: 'vine_armor', name: '藤甲', icon: '🛡️', parts: { vine_strand: 3, leaves: 2, vines: 2 }, desc: '防御 -7、雨中几乎不湿身。' },
+    { id: 'stone_claw', name: '石爪', icon: '🐾', parts: { gem_ruby: 1, sinew: 2, fishbone: 2 }, desc: '攻击 +8——显著提升伤害。' },
+    { id: 'dragon_potion', name: '龙血药剂', icon: '🧫', parts: { dragon_herb: 2, herbs: 1, fat: 1 }, req: 'alchemist', desc: '瞬间恢复 60 生命。需要【草药炼金】。' },
   ];
+  /* 制造类消耗品：受「能工巧匠」加成（每级效果 +20%） */
+  const CRAFTED = new Set(['cooked_salmon', 'herb_salve', 'dried_catnip', 'catnip_tea', 'energy_potion', 'dragon_potion']);
 
   /* ------------------------------------------------------------ creature defs */
   const PREY = {
@@ -57,9 +89,11 @@
     boar: { r: 14, speed: 92, charge: 330, hp: 60, dmg: 12, aggro: 260 },
     fox: { r: 11, speed: 148, hp: 35, dmg: 8, aggro: 235 },
     viper: { r: 7, speed: 42, hp: 15, dmg: 10, aggro: 120 },
+    monkey: { r: 9, speed: 175, hp: 28, dmg: 6, aggro: 230 },
+    croc: { r: 16, speed: 62, hp: 95, dmg: 16, aggro: 260 },
   };
   const COMPANION_NAMES = ['Mochi', 'Yuki', 'Nori', 'Suki', 'Taro', 'Kumo', 'Hana', 'Rin'];
-  const TYPE_NAMES = { boar: '野猪', fox: '狐狸', viper: '毒蛇', mouse: '田鼠', grasshopper: '蚱蜢', salmon: '河鲑' };
+  const TYPE_NAMES = { boar: '野猪', fox: '狐狸', viper: '毒蛇', monkey: '猴子', croc: '鳄鱼', mouse: '田鼠', grasshopper: '蚱蜢', salmon: '河鲑' };
   const typeName = (t) => TYPE_NAMES[t] || t;
 
   const list = [];
@@ -86,16 +120,25 @@
         wetness: 0, wetnessMax: 100,
       },
       inventory: [],
-      equipped: { hat: null, collar: null },
+      equipped: { hat: null, collar: null, claw: null },
       sniff: { active: false, t: 0, cd: 0 },
       groomCd: 0, interactCd: 0, pounceCd: 0,
       summonCd: 0,
       napT: 0, zoomiesT: 0,
       hurtT: 0, blinkT: 3, blink: false,
       tallGrass: false, inCave: false,
+      poisonT: 0, poisonTick: 0, poisonPerTick: 10,   /* 中毒状态：剩余时间 + 跳血倒计时 + 每跳伤害 */
       outside: { x: 0, y: 0 },
       pounceHit: null,
     };
+  }
+
+  /* 施加中毒：取更长持续时间（可叠加刷新）；每 2 秒跳一次血，每跳伤害 perTick（缺省 10，扑击为 5）
+     每跳伤害用新施加的值覆盖（中毒状态刷新为最新攻击的属性） */
+  function applyPoison(p, dur, perTick) {
+    p.poisonT = Math.max(p.poisonT || 0, dur);
+    p.poisonPerTick = perTick || 10;
+    if (p.poisonTick <= 0) p.poisonTick = 2;   /* 首跳在 2 秒后 */
   }
 
   /* ------------------------------------------------------------ spawners */
@@ -120,7 +163,7 @@
       kind: 'predator', type,
       x: (tx + 0.5) * W.TILE, y: (ty + 0.5) * W.TILE,
       vx: 0, vy: 0, r: d.r, speed: d.speed, charge: d.charge,
-      hp: d.hp, dmg: d.dmg, aggro: d.aggro,
+      hp: scaledHp(d.hp), dmg: scaledDmg(d.dmg), aggro: d.aggro,
       alive: true, dir: Math.random() * U.TAU,
       animT: Math.random() * 10, wanderT: U.randRange(1.5, 4),
       state: 'wander', attackCd: 0, chasing: false, alerted: false,
@@ -131,18 +174,25 @@
     return e;
   }
 
-  function spawnCompanion() {
+  /* 伙伴猫唯一 id 递增计数：每次生成 +1 保证本次运行内不重复；
+     起始加随机偏移，避免页面刷新后新生成的流浪猫与旧存档 id 撞车 */
+  let companionSeq = U.randInt(100000, 999999);
+
+  function spawnCompanion(init) {
     const c = {
       kind: 'companion',
-      name: U.pick(COMPANION_NAMES),
-      colorIdx: U.randInt(0, 2),
+      id: (init && typeof init.id === 'string' && init.id) ? init.id : 'cat' + (++companionSeq),
+      name: (init && typeof init.name === 'string' && init.name) ? init.name : U.pick(COMPANION_NAMES),
+      colorIdx: (init && Number.isInteger(init.colorIdx) && init.colorIdx >= 0 && init.colorIdx <= 2) ? init.colorIdx : U.randInt(0, 2),
       x: 0, y: 0, r: 12,
       speed: 85, dir: Math.random() * U.TAU,
       animT: Math.random() * 10, wanderT: U.randRange(2, 5),
       state: 'wander',
-      friendship: 0, perk: 0,
-      met: false, adopted: false,
-      follow: false, scentT: U.randRange(0.3, 0.9),
+      friendship: (init && typeof init.friendship === 'number' && isFinite(init.friendship)) ? Math.max(0, Math.min(100, init.friendship)) : 0,
+      perk: (init && typeof init.perk === 'number' && isFinite(init.perk)) ? Math.max(0, Math.min(3, Math.floor(init.perk))) : 0,
+      met: !!(init && init.met), adopted: !!(init && init.adopted),
+      follow: !!(init && init.adopted),
+      scentT: U.randRange(0.3, 0.9),
       giftCd: U.randRange(20, 50), warnCd: 0, heartT: 0,
       summonT: 0, attackCd: 0,
       alive: true,
@@ -161,32 +211,51 @@
   }
 
   /* ----------------------------------------------------------- zone init */
+  /* 敌对怪物密度：场景越深越密集；生成时还会按玩家等级加成（每 5 级 +30%） */
   const ZONE_SPAWN = {
-    0: { prey: { mouse: 42, grasshopper: 30 }, salmon: 26, pred: { boar: 6, fox: 4, viper: 6 }, comp: 4 },
-    1: { prey: { mouse: 26, grasshopper: 12 }, salmon: 8, pred: { fox: 5, viper: 3 }, strayDogs: 3, comp: 3 },
-    2: { prey: { mouse: 20, grasshopper: 22 }, salmon: 6, pred: { boar: 5, fox: 6, viper: 8 }, comp: 3 },
-    3: { prey: { mouse: 28, grasshopper: 12 }, salmon: 4, pred: { boar: 6, fox: 5, viper: 9 }, comp: 3 },
+    0: { prey: { mouse: 42, grasshopper: 30 }, salmon: 26, pred: { boar: 8, fox: 6, viper: 8 }, comp: 4 },
+    1: { prey: { mouse: 26, grasshopper: 12 }, salmon: 8, pred: { fox: 7, viper: 4 }, strayDogs: 4, comp: 3 },
+    2: { prey: { mouse: 20, grasshopper: 22 }, salmon: 6, pred: { boar: 7, fox: 8, viper: 10 }, comp: 3 },
+    3: { prey: { mouse: 28, grasshopper: 12 }, salmon: 4, pred: { boar: 6, fox: 6, viper: 8, monkey: 8, croc: 7 }, comp: 3 },
   };
+  /* 密度随玩家等级提升：每 5 级 +30%（保证高等级仍有大量怪可刷） */
+  function densityMul() {
+    return 1 + Math.floor((player.level - 1) / 5) * 0.3;
+  }
 
   const BOSS_DEFS = {
     0: { name: '巨野猪', hp: 250, r: 22, bt: 'boar', speed: 90, charge: 430, dmg: 18 },
     1: { name: '弹弓顽童', hp: 180, r: 14, bt: 'kid', speed: 95, dmg: 10 },
     2: { name: '巨狼', hp: 300, r: 20, bt: 'wolf', speed: 300, dmg: 16 },
-    3: { name: '巨蛇', hp: 350, r: 16, bt: 'serpent', speed: 75, dmg: 18 },
+    /* 关底 Boss：大眼镜蛇——体型巨大、会喷毒与远距离扑击 */
+    3: { name: '大眼镜蛇', hp: 520, r: 22, bt: 'cobra', speed: 82, dmg: 26 },
   };
   const BOSS_SPOTS = {
     0: { tx: 146, ty: 146 },
     1: { tx: 156, ty: 83 },   /* 城市东端竞技场 */
-    2: { tx: 16, ty: 146 },
-    3: { tx: 146, ty: 16 },
+    2: { tx: 146, ty: 146 },
+    3: { tx: 150, ty: 150 },
   };
   let boss = null;
   let bossProjectiles = [];
+  /* 场景内怪物补刷：记录密度目标，怪物被杀后缓慢补回，避免"刷空一个场景" */
+  let predTarget = 0;
+  let strayTarget = 0;
+  let respawnT = 0;
 
   function init(zone, placePos, keepPlayer) {
+    /* 跨区传送（keepPlayer=true）时保留已收养的伙伴猫：羁绊不因换区被清空；
+       未收养的流浪猫随场景重新生成（keepPlayer=false 新档则照旧全部清空） */
+    const kept = [];
+    if (keepPlayer) {
+      for (const c of companions) if (c.adopted) kept.push(c);
+    }
     list.length = 0;
     companions.length = 0;
     bossProjectiles.length = 0;
+    predTarget = 0;
+    strayTarget = 0;
+    respawnT = 0;
     if (keepPlayer && player) {
       /* 跨区域传送：保留玩家一切成长 */
     } else {
@@ -219,36 +288,70 @@
       const tx = U.randInt(2, W.W - 3), ty = U.randInt(2, W.H - 3);
       if (W.isWater(tx, ty)) { spawnPrey('salmon', tx, ty); salmon++; }
     }
+    /* 生成后记录密度目标（用于场景内补刷） */
+    const dm = densityMul();
     for (const type in cfg.pred) {
       let n = 0;
-      for (let tries = 0; tries < 3000 && n < cfg.pred[type]; tries++) {
+      const target = Math.round(cfg.pred[type] * dm);
+      for (let tries = 0; tries < 3000 && n < target; tries++) {
         const tx = U.randInt(2, W.W - 3), ty = U.randInt(2, W.H - 3);
-        const t = W.terrain[W.idx(tx, ty)];
-        const ok = type === 'viper' ? (t === W.T.GRASS || t === W.T.FOREST || t === W.T.SWAMP || t === W.T.URBAN)
-          : (t !== W.T.WATER && t !== W.T.ROCK && t !== W.T.WALL);
-        if (ok) { spawnPredator(type, tx, ty); n++; }
+        if (canSpawnPred(type, tx, ty)) { spawnPredator(type, tx, ty); n++; }
       }
+      predTarget += target;
+    }
+    /* 跨区传送保留的已收养伙伴猫：就近放到新区域可行走位置，继续跟随玩家 */
+    for (const c of kept) {
+      c.x = player.x + U.randRange(-30, 30);
+      c.y = player.y + U.randRange(-30, 30);
+      snapToWalkable(c);
+      list.push(c);
+      companions.push(c);
     }
     for (let i = 0; i < cfg.comp; i++) spawnCompanion();
-    /* 流浪狗：城市里的新威胁 */
-    for (let i = 0; i < (cfg.strayDogs || 0); i++) spawnStrayDog();
+    /* 流浪狗：城市里的新威胁（密度同样随等级加成） */
+    const dogTarget = Math.round((cfg.strayDogs || 0) * dm);
+    for (let i = 0; i < dogTarget; i++) spawnStrayDog();
+    strayTarget = dogTarget;
     spawnBoss(zone);
   }
 
-  function spawnStrayDog() {
-    for (let tries = 0; tries < 240; tries++) {
-      const tx = U.randInt(2, W.W - 3), ty = U.randInt(2, W.H - 3);
-      if (W.canWalk(tx, ty)) {
-        list.push({
-          kind: 'straydog', x: (tx + 0.5) * W.TILE, y: (ty + 0.5) * W.TILE,
-          r: 12, speed: 145, hp: 30, dir: Math.random() * U.TAU,
-          animT: Math.random() * 10, wanderT: U.randRange(2, 5),
-          chaseT: 0, attackCd: 0, scentT: U.randRange(0.2, 0.8),
-          state: 'wander', stateT: 0, alive: true,
-        });
-        return;
+  /* 捕食者可生成的格位条件（生成与补刷共用） */
+  function canSpawnPred(type, tx, ty) {
+    const t = W.terrain[W.idx(tx, ty)];
+    return type === 'viper' ? (t === W.T.GRASS || t === W.T.FOREST || t === W.T.SWAMP || t === W.T.URBAN)
+      : type === 'monkey' ? (t === W.T.MEADOW || t === W.T.DIRT || t === W.T.GRASS)
+        : type === 'croc' ? (t === W.T.SWAMP || W.isWater(tx, ty) || W.isWater(tx - 1, ty) || W.isWater(tx + 1, ty) || W.isWater(tx, ty - 1) || W.isWater(tx, ty + 1))
+          : (t !== W.T.WATER && t !== W.T.ROCK && t !== W.T.WALL && t !== W.T.LAVA);
+  }
+
+  function spawnStrayDog(tx, ty) {
+    if (tx === undefined) {
+      for (let tries = 0; tries < 240; tries++) {
+        tx = U.randInt(2, W.W - 3); ty = U.randInt(2, W.H - 3);
+        if (W.canWalk(tx, ty)) break;
       }
     }
+    if (!W.canWalk(tx, ty)) return null;
+    const e = {
+      kind: 'straydog', x: (tx + 0.5) * W.TILE, y: (ty + 0.5) * W.TILE,
+      r: 12, speed: 145, hp: scaledHp(30), dmg: scaledDmg(8), dir: Math.random() * U.TAU,
+      animT: Math.random() * 10, wanderT: U.randRange(2, 5),
+      chaseT: 0, attackCd: 0, scentT: U.randRange(0.2, 0.8),
+      state: 'wander', stateT: 0, alive: true,
+    };
+    list.push(e);
+    return e;
+  }
+
+  /* 潜行侦测统一系数（中 18）：捕食者 / 流浪狗 / 挑战实体共用同一套规则；
+     潜行 + 高草隐匿最佳，伪装技能（camo）效果翻倍，仅高草也有小幅隐蔽 */
+  function sneakFactor() {
+    const p = player;
+    if (!p) return 1;
+    if (p.state === 'sneak' && p.tallGrass) return hasSkill('camo') ? 0.18 : 0.35;
+    if (p.state === 'sneak') return hasSkill('camo') ? 0.4 : 0.55;
+    if (p.tallGrass) return 0.8;
+    return 1;
   }
 
   function updateStrayDog(e, dt) {
@@ -270,15 +373,14 @@
         moveEntity(e, Math.cos(e.dir) * e.speed * dt, Math.sin(e.dir) * e.speed * dt);
         if (d < e.r + p.r + 5 && e.attackCd <= 0) {
           e.attackCd = 1.2;
-          damagePlayer(8);
-          Game.ui.log('🐕 流浪狗咬了你一口！（-8 生命）', 'danger');
+          damagePlayer(e.dmg);
+          Game.ui.log(`🐕 流浪狗咬了你一口！（-${e.dmg} 生命）`, 'danger');
         }
         return;
       }
     }
-    let detect = 235;
-    if (p.state === 'sneak' && p.tallGrass) detect = 95;
-    else if (p.state === 'sneak') detect = 150;
+    /* 基础侦测半径统一乘潜行系数（95/150 硬编码已并入 sneakFactor） */
+    let detect = 235 * sneakFactor();
     if (d < detect && e.chaseT <= 0) {
       e.chaseT = 6;
       Game.ui.log('🐕 流浪狗朝你狂吠追来！', 'danger');
@@ -311,20 +413,27 @@
   function spawnBoss(zone) {
     const def = BOSS_DEFS[zone] || BOSS_DEFS[0];
     const sp = BOSS_SPOTS[zone] || BOSS_SPOTS[0];
-    /* 清理出一小块竞技场 */
+    /* 清理出一小块竞技场（用地形本色，避免在荒原/城市里出现绿色草皮） */
+    const base = zone === 1 ? W.T.URBAN : zone === 2 ? W.T.DIRT : W.T.MEADOW;
     for (let dy = -5; dy <= 5; dy++) {
       for (let dx = -5; dx <= 5; dx++) {
         const tx = sp.tx + dx, ty = sp.ty + dy;
-        if (W.inBounds(tx, ty) && W.terrain[W.idx(tx, ty)] !== W.T.WATER) W.terrain[W.idx(tx, ty)] = W.T.MEADOW;
+        if (W.inBounds(tx, ty) && W.terrain[W.idx(tx, ty)] !== W.T.WATER) W.terrain[W.idx(tx, ty)] = base;
       }
     }
     if (Game.state.bossDefeated && Game.state.bossDefeated[zone]) { boss = null; return; }
+    /* Boss 难度：在场景系数上再上浮 15%，随玩家等级成长 */
+    const k = difficultyK() * 1.15;
+    const bhp = Math.max(1, Math.round(def.hp * k));
     boss = {
       kind: 'boss', bt: def.bt, name: def.name,
       x: (sp.tx + 0.5) * W.TILE, y: (sp.ty + 0.5) * W.TILE,
-      r: def.r, hp: def.hp, hpMax: def.hp,
-      speed: def.speed, charge: def.charge || 0, dmg: def.dmg,
+      r: def.r, hp: bhp, hpMax: bhp,
+      speed: def.speed * Math.min(1.12, 1 + (k - 1) * 0.03),
+      charge: def.charge || 0,
+      dmg: Math.max(1, Math.round(def.dmg * (1 + (k - 1) * 0.65))),
       aggro: false, attackCd: 0, chargeCd: 0, shootCd: U.randRange(1.5, 2.5),
+      spitCd: U.randRange(2, 3.5), leapCd: U.randRange(3, 5),
       animT: Math.random() * 10, dir: 0, state: 'idle', stateT: 0, alive: true,
     };
   }
@@ -369,25 +478,89 @@
         damagePlayer(boss.dmg);
         Game.ui.log(`🐺 巨狼咬了你！（-${boss.dmg} 生命）`, 'danger');
       }
-    } else if (boss.bt === 'serpent') {
-      if (boss.state === 'lunge') {
+    } else if (boss.bt === 'cobra') {
+      /* 大眼镜蛇（关底 Boss）：毒液喷射 + 远距离扑击 + 近战咬毒
+         技能均有前摇：喷毒前伏低身体、扑击前高高支起身体 */
+      const dCur = U.dist(boss.x, boss.y, p.x, p.y);
+      if (boss.state === 'spitWindup') {
+        /* 前摇：伏低身体，锁向玩家 */
         boss.stateT -= dt;
         boss.dir = Math.atan2(p.y - boss.y, p.x - boss.x);
-        moveEntity(boss, Math.cos(boss.dir) * 330 * dt, Math.sin(boss.dir) * 330 * dt);
-        if (boss.stateT <= 0) boss.state = 'idle';
-      } else {
+        if (boss.stateT <= 0) {
+          boss.state = 'idle';
+          boss.spitCd = U.randRange(4.5, 6.5);
+          const a = Math.atan2(p.y - boss.y, p.x - boss.x);
+          bossProjectiles.push({
+            x: boss.x + Math.cos(a) * 22, y: boss.y + 10,
+            sx: boss.x + Math.cos(a) * 22, sy: boss.y + 10,   /* 射线起点（蛇口） */
+            vx: Math.cos(a) * 340, vy: Math.sin(a) * 340,
+            life: 1.55, dmg: 10, venom: true,   /* life 限制射程 ≈527px */
+          });
+          Game.ui.log('🐍 大眼镜蛇喷出一团毒液！', 'danger');
+          Game.sfx && Game.sfx.pounce();
+          for (let i = 0; i < 7; i++) {
+            Game.particles.spawn({
+              x: boss.x + Math.cos(a) * 26, y: boss.y + 8,
+              kind: 'dot', size: U.randRange(2, 3.5),
+              color: 'rgba(150,255,110,0.9)',
+              vx: Math.cos(a + U.randRange(-0.35, 0.35)) * U.randRange(50, 130),
+              vy: U.randRange(-50, 10), life: 0.55, grav: 140,
+            });
+          }
+        }
+      } else if (boss.state === 'leapWindup') {
+        /* 前摇：支起身体，锁向玩家 */
+        boss.stateT -= dt;
         boss.dir = Math.atan2(p.y - boss.y, p.x - boss.x);
-        moveEntity(boss, Math.cos(boss.dir) * boss.speed * dt, Math.sin(boss.dir) * boss.speed * dt);
-        if (d < 260 && boss.chargeCd <= 0) {
-          boss.state = 'lunge'; boss.stateT = 0.5; boss.chargeCd = 3.0;
-          Game.ui.log('🐍 巨蛇猛地扑向你！', 'danger');
+        if (boss.stateT <= 0) {
+          boss.state = 'leap';
+          boss.stateT = 0.45;
+          boss.leapCd = U.randRange(5, 7);
+          boss.dir = Math.atan2(p.y - boss.y, p.x - boss.x);
+          boss.vx = Math.cos(boss.dir) * 580;
+          boss.vy = Math.sin(boss.dir) * 580;
+          Game.ui.log('🐍 大眼镜蛇如箭般扑击而来！', 'danger');
           Game.sfx && Game.sfx.alert();
         }
-      }
-      if (d < boss.r + p.r + 8 && boss.attackCd <= 0) {
-        boss.attackCd = 1.2;
-        damagePlayer(boss.dmg);
-        Game.ui.log(`🐍 巨蛇缠咬了你！（-${boss.dmg} 生命）`, 'danger');
+      } else if (boss.state === 'leap') {
+        /* 扑击飞行：高速冲向玩家，路径撞上即重创 */
+        boss.stateT -= dt;
+        boss.dir = Math.atan2(boss.vy, boss.vx);
+        moveEntity(boss, boss.vx * dt, boss.vy * dt);
+        Game.particles.spawn({ x: boss.x, y: boss.y + 16, kind: 'puff', size: 7, color: 'rgba(150,190,130,0.5)', life: 0.3 });
+        const d2 = U.dist(boss.x, boss.y, p.x, p.y);
+        if (d2 < boss.r + p.r + 10) {
+          const pdmg = 30;   /* 扑击直接伤害 30 */
+          damagePlayer(pdmg);
+          applyPoison(p, 4, 5);   /* 中毒：每 2 秒 5 点，持续 4 秒 */
+          Game.ui.log(`🐍 眼镜蛇扑击重创了你！（-${pdmg} 生命，中毒！）`, 'danger');
+          boss.state = 'idle';
+          boss.attackCd = 1.4;
+        }
+        if (boss.stateT <= 0) boss.state = 'idle';
+      } else {
+        /* 常规：追踪 + 技能调度 + 近战咬毒 */
+        boss.dir = Math.atan2(p.y - boss.y, p.x - boss.x);
+        moveEntity(boss, Math.cos(boss.dir) * boss.speed * dt, Math.sin(boss.dir) * boss.speed * dt);
+        boss.spitCd = Math.max(0, boss.spitCd - dt);
+        boss.leapCd = Math.max(0, boss.leapCd - dt);
+        boss.attackCd = Math.max(0, boss.attackCd - dt);
+        if (boss.spitCd <= 0 && dCur < 380 && dCur > 120) {
+          boss.state = 'spitWindup';
+          boss.stateT = 0.7;
+          Game.ui.log('🐍 大眼镜蛇蜷曲身体蓄力……（要喷毒了！）', 'danger');
+          Game.sfx && Game.sfx.alert();
+        } else if (boss.leapCd <= 0 && dCur < 320 && dCur > 80) {
+          boss.state = 'leapWindup';
+          boss.stateT = 0.6;
+          Game.ui.log('🐍 大眼镜蛇停下脚步，盘卷起身体……（要扑击了！）', 'danger');
+          Game.sfx && Game.sfx.alert();
+        } else if (dCur < boss.r + p.r + 8 && boss.attackCd <= 0) {
+          boss.attackCd = 1.1;
+          damagePlayer(boss.dmg);
+          applyPoison(p, 5, 5);
+          Game.ui.log(`🐍 眼镜蛇咬中了你！（-${boss.dmg} 生命，中毒！）`, 'danger');
+        }
       }
     } else if (boss.bt === 'kid') {
       if (d < 190) {
@@ -420,10 +593,21 @@
       pr.x += pr.vx * dt;
       pr.y += pr.vy * dt;
       if (pr.life <= 0) { bossProjectiles.splice(i, 1); continue; }
+      /* 毒液射程限制：离蛇口超过 540px 即消散（射线不会无限长） */
+      if (pr.venom && pr.sx !== undefined && U.dist2(pr.x, pr.y, pr.sx, pr.sy) > 540 * 540) {
+        bossProjectiles.splice(i, 1);
+        Game.particles.spawn({ x: pr.x, y: pr.y, kind: 'puff', size: 6, color: 'rgba(120,220,80,0.5)', life: 0.3 });
+        continue;
+      }
       if (U.dist2(p.x, p.y, pr.x, pr.y) < 16 * 16) {
         bossProjectiles.splice(i, 1);
         damagePlayer(pr.dmg);
-        Game.ui.log(`💢 你被石子砸中了！（-${pr.dmg} 生命）`, 'danger');
+        if (pr.venom) {
+          applyPoison(p, 5, 5);
+          Game.ui.log(`💚 毒液溅到你身上！（-${pr.dmg} 生命，中毒！）`, 'danger');
+        } else {
+          Game.ui.log(`💢 你被石子砸中了！（-${pr.dmg} 生命）`, 'danger');
+        }
       }
     }
   }
@@ -438,10 +622,9 @@
     if (boss.hp <= 0) {
       boss.hp = 0;
       boss.alive = false;
-      Game.ui.log(`🏆 你击败了【${boss.name}】！获得大量奖励！`, 'good');
+      Game.ui.log(`🏆 你击败了【${boss.name}】！获得大量经验！`, 'good');
       Game.sfx && Game.sfx.craft();
-      grantSkillPoint(3);
-      addXp(120);
+      addXp(Math.round(120 * (1 + (Game.state.zone || 0) * 0.25)));
       if (Game.state.bossDefeated) Game.state.bossDefeated[Game.state.zone] = true;
       Game.particles.spawn({ x: boss.x, y: boss.y, kind: 'puff', size: 30, color: 'rgba(255,180,120,0.8)', life: 0.8 });
       bossProjectiles.length = 0;
@@ -471,8 +654,9 @@
   }
 
   /* ---------------------------------------------------- xp / level / skills */
+  /* 升级经验曲线：平缓递增（70 × L^1.15），配合更高怪物密度，成长更快、不必死刷 */
   function xpToLevel(level) {
-    return Math.floor(90 * Math.pow(level, 1.35));
+    return Math.floor(70 * Math.pow(level, 1.15));
   }
   function hasSkill(id) {
     return !!player && player.skills.includes(id);
@@ -480,9 +664,10 @@
   function recalcMaxStats(p) {
     p = p || player;
     if (!p) return;
-    p.stats.hpMax = 100 + (p.level - 1) * 8;
-    p.stats.staminaMax = 100 + (p.level - 1) * 4;
-    p.stats.moodMax = Math.round((100 + (p.level - 1) * 4) * (p.skills.includes('brave') ? 1.25 : 1));
+    /* 每级永久成长：生命 +10、体力 +6、心情 +6（满血/满体力时升级即时生效） */
+    p.stats.hpMax = 100 + (p.level - 1) * 10;
+    p.stats.staminaMax = 100 + (p.level - 1) * 6;
+    p.stats.moodMax = Math.round((100 + (p.level - 1) * 6) * (p.skills.includes('brave') ? 1.25 : 1));
     p.stats.hp = Math.min(p.stats.hp, p.stats.hpMax);
     p.stats.stamina = Math.min(p.stats.stamina, p.stats.staminaMax);
     p.stats.mood = Math.min(p.stats.mood, p.stats.moodMax);
@@ -512,27 +697,78 @@
     Game.ui.log(`📌 获得 ${n} 技能点！（当前 ${player.skillPoints}）`, 'craft');
     Game.sfx && Game.sfx.craft();
   }
-  const SKILL_NAMES = {
-    hunter: '猎手本能', swift: '疾风快爪', thick: '厚实毛皮',
-    keen: '敏锐嗅觉', brave: '无畏之心', angler: '渔夫之尾',
-    guardian: '守护之力', camo: '树叶伪装', summon: '召唤强化',
+  const SKILL_DEFS = {
+    hunter: { name: '猎手本能', max: 5, desc: '每级：扑击伤害 +15%、捕捉范围更大' },
+    leap: { name: '飞扑袭杀', max: 3, desc: '每级：扑击距离 +20%（满级 +60%）' },
+    keen: { name: '敏锐嗅觉', max: 1, desc: '嗅探范围 +40%，气味更浓密' },
+    angler: { name: '渔夫之尾', max: 1, desc: '钓鱼必定成功' },
+    swift: { name: '疾风快爪', max: 1, desc: '移动速度 +10%，体力回复 +25%' },
+    thick: { name: '厚实毛皮', max: 5, desc: '每级：受到的伤害 -12%（满级 -47%）' },
+    camo: { name: '树叶伪装', max: 1, desc: '高草丛隐匿效果翻倍，潜行更省体力' },
+    vitality: { name: '活力充盈', max: 5, desc: '每级：体力恢复速度 +30%（满级 +150%）' },
+    guardian: { name: '守护之力', max: 1, desc: '友情获取 +50%，狩猎协助 +4' },
+    brave: { name: '无畏之心', max: 1, desc: '心情上限 +25%，挑战奖励 +50%' },
+    summon: { name: '召唤强化', max: 1, desc: '召唤时间 25→40 秒，冷却 5→3 分钟' },
+    dodge: { name: '灵动闪避', max: 5, desc: '每级：6% 概率完全闪避伤害（满级 30%）' },
+    agile: { name: '身轻如燕', max: 1, desc: '扑击消耗体力 -40%，冷却 -0.2 秒' },
+    craft: { name: '能工巧匠', max: 5, desc: '每级：制造物品效果 +20%，装备加成也提升' },
+    alchemist: { name: '草药炼金', max: 1, desc: '解锁活力药剂等强力配方' },
   };
+  const SKILL_NAMES = {};
+  for (const k in SKILL_DEFS) SKILL_NAMES[k] = SKILL_DEFS[k].name;
+  function skillLevel(id) {
+    return player ? player.skills.filter((s) => s === id).length : 0;
+  }
+  /* 体力恢复倍率：等级成长（每级 +4%，上限 +140%）+ 活力充盈（每级 +30%）+ 疾风快爪（+25%） */
+  function staminaRegenMult() {
+    if (!player) return 1;
+    return Math.min(2.4, 1 + (player.level - 1) * 0.04 + skillLevel('vitality') * 0.3 + (hasSkill('swift') ? 0.25 : 0));
+  }
+  /* 制作倍率：能工巧匠每级 +20% */
+  function craftMult() {
+    return 1 + skillLevel('craft') * 0.2;
+  }
+
+  /* ---------------------------------------------------- 难度曲线（随玩家等级成长）
+     怪物 / Boss / 挑战的强度随玩家等级同步提升，各场景自带基础难度梯度：
+     荒野草原 1.0 < 城市小区 1.25 < 干燥荒野 1.5 < 幽暗森林 1.8，
+     每级额外 +8%，保证无论等级高低都始终有挑战。 */
+  const ZONE_DIFF = [1.0, 1.25, 1.5, 1.8];
+  function difficultyK() {
+    const lvl = player ? player.level : 1;
+    return (ZONE_DIFF[Game.world.zone] || 1.0) + (lvl - 1) * 0.08;
+  }
+  function scaledHp(base) { return Math.max(1, Math.round(base * difficultyK())); }
+  function scaledDmg(base) {
+    const k = difficultyK();
+    return Math.max(1, Math.round(base * (1 + (k - 1) * 0.65)));
+  }
+  function scaledXp(base) {
+    const k = difficultyK();
+    return Math.max(1, Math.round(base * (1 + (Game.world.zone || 0) * 0.25) * (1 + (k - 1) * 0.4)));
+  }
   function learnSkill(skillId) {
     const p = player;
     if (!p) return false;
-    if (p.skills.includes(skillId)) {
-      Game.ui.log('📖 你已经掌握这个技能了！', 'info');
+    const def = SKILL_DEFS[skillId];
+    if (!def) {
+      Game.ui.log('📖 没有这个技能！', 'info');
+      return false;
+    }
+    const lv = skillLevel(skillId);
+    if (lv >= def.max) {
+      Game.ui.log(`📖 ${def.name} 已经满级（Lv.${def.max}）！`, 'info');
       return false;
     }
     if (p.skillPoints < 1) {
-      Game.ui.log('📌 技能点不足——升级或挑战胜利可获得技能点。', 'info');
+      Game.ui.log('📌 技能点不足——只有升级才能获得技能点。', 'info');
       return false;
     }
     p.skillPoints -= 1;
-    p.skills.push(skillId);
+    p.skills.push(skillId); /* 同一技能可重复点亮，逐级提升 */
     recalcMaxStats(p);
     addXp(25);
-    Game.ui.log(`⭐ 习得技能：${SKILL_NAMES[skillId] || skillId}！（-1 技能点）`, 'craft');
+    Game.ui.log(`⭐ 习得技能：${def.name} Lv.${lv + 1}/${def.max}！（-1 技能点）`, 'craft');
     Game.sfx && Game.sfx.craft();
     Game.ui.refreshModals && Game.ui.refreshModals();
     return true;
@@ -544,43 +780,46 @@
     if (!force && Math.random() > 0.4) return false;
     const id = U.pick(unlearned);
     addItem(id);
-    Game.ui.log(`📖 发现技能书：${ITEMS[id].name}！（在行囊中阅读）`, 'craft');
+    Game.ui.log(`📖 发现技能书：${itemDef(id).name}！（在行囊中阅读）`, 'craft');
     Game.sfx && Game.sfx.craft();
     return true;
   }
 
   function useItem(id) {
     const p = player;
-    const def = ITEMS[id];
+    const def = itemDef(id);
     if (!def) return;
     if (def.book) {
-      /* 旧版技能书：阅读后转化为技能点 */
+      /* 旧版技能书：技能点只在升级时获得，书改为赠送经验 */
       removeItem(id, 1);
-      grantSkillPoint(2);
-      Game.ui.log('📖 阅读旧技能书：+2 技能点！', 'craft');
+      addXp(40);
+      Game.ui.log('📖 阅读旧技能书：+40 经验！（技能点只在升级时获得）', 'craft');
       return;
     }
     if (def.equip) {
       const slot = def.equip;
       if (p.equipped[slot]) {
-        addItem(p.equipped[slot]);
+        /* 卸下：装备物一直留在行囊中，只清空装备槽 */
         p.equipped[slot] = null;
-        Game.ui.log(`⬇️ 摘下了${def.name}。`, 'info');
+        Game.ui.log(`⬇️ 摘下了${def.name}（仍在行囊中）。`, 'info');
       } else {
+        /* 穿上：物品保留在行囊，装备槽记录 id，背包显示"已装备"标记 */
         p.equipped[slot] = id;
-        removeItem(id);
         Game.ui.log(`⬆️ 穿上了${def.name}！`, 'good');
       }
       Game.sfx && Game.sfx.craft();
       Game.ui.refreshModals && Game.ui.refreshModals();
       return;
     }
-    if (def.food || def.mood || def.heal || def.zoomies) {
+    if (def.food || def.mood || def.heal || def.stamina || def.zoomies) {
       const s = p.stats;
-      if (def.food) s.satiety = Math.min(s.satietyMax, s.satiety + def.food);
-      if (def.water) s.hydration = Math.min(s.hydrationMax, s.hydration + def.water);
-      if (def.mood) s.mood = Math.min(s.moodMax, s.mood + def.mood);
-      if (def.heal) s.hp = Math.min(s.hpMax, s.hp + def.heal);
+      /* 制造类消耗品受「能工巧匠」加成 */
+      const cm = CRAFTED.has(id) ? craftMult() : 1;
+      if (def.food) s.satiety = Math.min(s.satietyMax, s.satiety + def.food * cm);
+      if (def.water) s.hydration = Math.min(s.hydrationMax, s.hydration + def.water * cm);
+      if (def.mood) s.mood = Math.min(s.moodMax, s.mood + def.mood * cm);
+      if (def.heal) s.hp = Math.min(s.hpMax, s.hp + def.heal * cm);
+      if (def.stamina) s.stamina = Math.min(s.staminaMax, s.stamina + def.stamina * cm);
       removeItem(id);
       if (def.zoomies) {
         p.zoomiesT = 6;
@@ -602,10 +841,13 @@
     s.satiety = Math.max(0, s.satiety - dt * 0.14);
     s.hydration = Math.max(0, s.hydration - dt * 0.18);
 
-    /* fur wetness */
+    /* fur wetness：从全干到全湿约 3 分钟（幽暗森林多雨、湿得更快） */
     if (st.weather === 'rain' && !p.inCave) {
       const hat = p.equipped.hat;
-      s.wetness = Math.min(s.wetnessMax, s.wetness + dt * (hat ? 2.5 : 11));
+      const zMul = Game.world.zone === 3 ? 1.8 : 1;   /* 森林雨天湿速 ×1.8 */
+      /* 藤甲几乎防水（约 1 小时）、树叶雨帽大幅防湿（约 10 分钟）、裸奔 3 分钟全湿 */
+      const wetRate = (hat === 'vine_armor' ? 0.028 : hat ? 0.16 : 0.55) * zMul;
+      s.wetness = Math.min(s.wetnessMax, s.wetness + dt * wetRate);
       s.hydration = Math.min(s.hydrationMax, s.hydration + dt * 0.8);
     } else {
       s.wetness = Math.max(0, s.wetness - dt * (p.inCave ? 7 : 0.6));
@@ -620,12 +862,38 @@
     else if (s.satiety < 20) s.hp -= dt * 0.6;
     if (s.hydration <= 0) s.hp -= dt * 2.6;
     else if (s.hydration < 20) s.hp -= dt * 0.7;
+
+    /* 中毒持续跳血：每 2 秒掉一次血（毒液/咬伤默认 10 点/跳，扑击 5 点/跳） */
+    if (p.poisonT > 0) {
+      p.poisonT -= dt;
+      p.poisonTick = (p.poisonTick || 0) - dt;
+      if (p.poisonTick <= 0) {
+        p.poisonTick = 2;
+        const tick = p.poisonPerTick || 10;
+        s.hp -= tick;
+        Game.ui.log(`💚 毒素发作！-${tick} 生命`, 'danger');
+        for (let i = 0; i < 4; i++) {
+          Game.particles.spawn({
+            x: p.x + U.randRange(-9, 9), y: p.y - U.randRange(2, 12),
+            kind: 'dot', size: U.randRange(1.8, 2.6), color: 'rgba(130,255,100,0.85)',
+            vx: U.randRange(-5, 5), vy: U.randRange(-18, -6), life: 0.7, grav: 40,
+          });
+        }
+      }
+      if (p.poisonT <= 0) {
+        p.poisonT = 0;
+        p.poisonTick = 0;
+        p.poisonPerTick = 10;
+        Game.ui.log('🌿 毒素消退，你恢复了。', 'info');
+      }
+    }
     if (s.hp <= 0) { s.hp = 0; die(); return; }
 
     /* mood */
     s.mood = Math.max(0, s.mood - dt * 0.06);
     if (s.hp < 35) s.mood -= dt * 0.1;
-    if (s.wetness > 60) s.mood -= dt * 0.06;
+    /* 身体全湿后毛发沉重拖累，缓慢消耗心情 */
+    if (s.wetness > 80) s.mood -= dt * 0.1;
 
     /* gentle regen when well fed, hydrated and dry */
     if (s.satiety > 55 && s.hydration > 55 && s.wetness < 30) {
@@ -645,6 +913,7 @@
     Game.sfx && Game.sfx.hurt();
     p.x = W.spawn.x; p.y = W.spawn.y;
     p.inCave = false;
+    p.poisonT = 0; p.poisonTick = 0; p.poisonPerTick = 10;   /* 死亡醒来不再中毒 */
     s.hp = 55; s.satiety = Math.max(35, s.satiety);
     s.hydration = Math.max(40, s.hydration);
     s.wetness = 0;
@@ -702,6 +971,7 @@
     p.groomCd = Math.max(0, p.groomCd - dt);
     p.interactCd = Math.max(0, p.interactCd - dt);
     p.pounceCd = Math.max(0, p.pounceCd - dt);
+    p.summonCd = Math.max(0, p.summonCd - dt);   /* 修复：召唤冷却此前从不递减 */
     p.hurtT = Math.max(0, p.hurtT - dt);
     p.zoomiesT = Math.max(0, p.zoomiesT - dt);
     p.blinkT -= dt;
@@ -726,7 +996,7 @@
       if (p.napT > 11) {
         p.state = 'sleep';
         p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + dt * 1.6);
-        p.stats.stamina = Math.min(p.stats.staminaMax, p.stats.stamina + dt * 3);
+        p.stats.stamina = Math.min(p.stats.staminaMax, p.stats.stamina + dt * 3 * staminaRegenMult());
         if (Math.random() < dt * 0.7) {
           Game.particles.spawn({ x: p.x + U.randRange(-8, 4), y: p.y - U.randRange(8, 18), kind: 'zzz', size: U.randRange(8, 13), color: 'rgba(200,190,255,0.8)', vy: -8, vx: U.randRange(4, 10), life: 1.6 });
         }
@@ -792,13 +1062,13 @@
       }
     }
 
-    /* stamina: wet fur slows regen; Swift Paws speeds it up; Camo cheapens sneaking */
+    /* stamina: wet fur slows regen; level/vitality/swift speed it up; Camo cheapens sneaking */
     const wetPenalty = p.stats.wetness > 40 ? 1 - (p.stats.wetness - 40) / 100 * 0.7 : 1;
     if (len > 0) {
       const cost = 3.2 * (sneaking ? 2.4 : 1) * (sneaking && hasSkill('camo') ? 0.6 : 1);
       p.stats.stamina = Math.max(0, p.stats.stamina - dt * cost);
     } else {
-      p.stats.stamina = Math.min(p.stats.staminaMax, p.stats.stamina + dt * 7 * wetPenalty * (p.equipped.hat ? 1.25 : 1) * (hasSkill('swift') ? 1.25 : 1));
+      p.stats.stamina = Math.min(p.stats.staminaMax, p.stats.stamina + dt * 7 * wetPenalty * (p.equipped.hat ? 1.25 : 1) * staminaRegenMult());
     }
 
     /* actions */
@@ -820,11 +1090,14 @@
     const p = player;
     p.state = 'pounce';
     p.stateT = 0;
-    p.stats.stamina -= 12;
+    /* 身轻如燕：扑击更省体力、冷却更短 */
+    p.stats.stamina -= hasSkill('agile') ? 7 : 12;
     const ang = p.facing;
-    p.vx = Math.cos(ang) * 560;
-    p.vy = Math.sin(ang) * 560;
-    p.pounceCd = 0.8;
+    /* 飞扑袭杀：每级扑击距离 +20% */
+    const leapMul = 1 + skillLevel('leap') * 0.2;
+    p.vx = Math.cos(ang) * 560 * leapMul;
+    p.vy = Math.sin(ang) * 560 * leapMul;
+    p.pounceCd = hasSkill('agile') ? 0.6 : 0.8;
     p.pounceHit = new Set();
     p.pounceStart = { x: p.x, y: p.y };
     p.lastLand = { x: p.x, y: p.y };
@@ -838,7 +1111,7 @@
       const t = W.tileAt(px, py);
       if (!W.inBounds(t.tx, t.ty)) return false;
       const tt = W.terrain[W.idx(t.tx, t.ty)];
-      if (tt === W.T.ROCK || tt === W.T.WALL) return false;   /* 岩石/建筑墙不可逾越；水面在扑击时可以通过 */
+      if (tt === W.T.ROCK || tt === W.T.WALL || tt === W.T.LAVA) return false;   /* 岩石/建筑墙/熔岩不可逾越；水面在扑击时可以通过 */
     }
     return true;
   }
@@ -939,24 +1212,30 @@
       Game.state.journey.preyCaught++;
       if (e.type === 'salmon') Game.state.journey.fishCaught++;
     }
-    Game.ui.log(`🐾 抓到一只${ITEMS[id].name}！`, 'catch');
+    Game.ui.log(`🐾 抓到一只${itemDef(id).name}！`, 'catch');
     Game.sfx && Game.sfx.catch();
     Game.particles.spawn({ x: e.x, y: e.y, kind: 'puff', size: 12, color: 'rgba(255,240,210,0.6)', life: 0.5 });
   }
 
-  /* 心情影响暴击：心情越高暴击率越高（5% ~ 25%），暴击造成双倍伤害 */
+  /* 心情影响暴击：心情越高暴击率越高（5% ~ 25%），暴击造成双倍伤害；蓝宝石星坠再 +12% */
   function critChance() {
-    return 0.05 + (player.stats.mood / player.stats.moodMax) * 0.20;
+    let c = 0.05 + (player.stats.mood / player.stats.moodMax) * 0.20;
+    if (player.equipped.collar === 'sapphire_star') c += 0.12;
+    return c;
   }
   function rollCrit() {
     return Math.random() < critChance();
   }
-  /* 玩家扑击总伤害：装备（鱼骨项圈 +3 / 猫牙项链 +20%）+ 猎手本能 + 召唤加成 + 暴击 */
+  /* 玩家扑击总伤害：装备（鱼骨项圈 / 猫牙项链 / 红宝石吊坠 / 蓝宝石星坠 + 石爪，能工巧匠加成）
+     + 猎手本能（可多级）+ 召唤加成 + 暴击 */
   function pounceDmg(base, crit) {
     let d = base;
-    if (player.equipped.collar === 'fishbone_collar') d += 3;
-    else if (player.equipped.collar === 'cat_tooth_necklace') d *= 1.2;
-    if (hasSkill('hunter')) d *= 1.15;
+    if (player.equipped.collar === 'fishbone_collar') d += 3 + skillLevel('craft');
+    else if (player.equipped.collar === 'cat_tooth_necklace') d *= 1.2 + skillLevel('craft') * 0.04;
+    else if (player.equipped.collar === 'flame_ruby_pendant') d *= 1.4 + skillLevel('craft') * 0.08;
+    else if (player.equipped.collar === 'sapphire_star') d *= 1.25;
+    if (player.equipped.claw === 'stone_claw') d += 8 + skillLevel('craft') * 2;
+    if (hasSkill('hunter')) d *= 1 + skillLevel('hunter') * 0.15;
     if (companions.some((c) => c.summonT > 0)) d *= 1.15;
     if (crit) d *= 2;
     return Math.round(d);
@@ -964,7 +1243,7 @@
 
   function hitPredator(e) {
     const crit = rollCrit();
-    let dmg = pounceDmg(e.type === 'boar' ? 26 : e.type === 'fox' ? 20 : 14, crit);
+    let dmg = pounceDmg(e.type === 'boar' ? 26 : e.type === 'fox' ? 20 : e.type === 'croc' ? 24 : e.type === 'monkey' ? 16 : 14, crit);
     /* companion hunt-assist perk (level 3) — Guardian's Prowess boosts it */
     if (companions.some((c) => c.perk >= 3 && U.dist(c.x, c.y, e.x, e.y) < 260)) dmg += hasSkill('guardian') ? 12 : 8;
     e.hp -= dmg;
@@ -983,7 +1262,9 @@
     if (e.type === 'boar') { addItem('fat', 2); addItem('sinew'); }
     if (e.type === 'fox') { addItem('sinew', 2); }
     if (e.type === 'viper') { addItem('herbs', 2); }
-    addXp(e.type === 'boar' ? 25 : e.type === 'fox' ? 20 : 15);
+    if (e.type === 'monkey') { addItem('sinew', U.randInt(1, 2)); if (Math.random() < 0.12) { addItem('gem_jade'); Game.ui.log('💎 猴子的巢穴里掉出一块翡翠！', 'good'); } }
+    if (e.type === 'croc') { addItem('fat', 2); addItem('sinew'); if (Math.random() < 0.2) { addItem('gem_sapphire'); Game.ui.log('💎 鳄鱼皮里嵌着一颗蓝宝石！', 'good'); } }
+    addXp(scaledXp(e.type === 'boar' ? 25 : e.type === 'fox' ? 20 : e.type === 'croc' ? 30 : e.type === 'monkey' ? 15 : 15));
     if (Game.state && Game.state.journey) Game.state.journey.predatorsSlain++;
     if (Math.random() < 0.08) grantSkillBook(false);
     Game.ui.log(`💀 ${typeName(e.type)}倒下了。`, 'combat');
@@ -994,9 +1275,20 @@
   function damagePlayer(amount) {
     const p = player;
     if (p.state === 'sleep') { p.state = 'idle'; }
-    /* 树叶雨帽：防御 +2（每次受伤减少） */
-    if (p.equipped.hat) amount -= 2;
-    amount = Math.max(1, Math.round(amount * (hasSkill('thick') ? 0.75 : 1)));
+    /* 灵动闪避：每级 6% 概率完全闪避伤害 */
+    const dodgeCh = skillLevel('dodge') * 0.06;
+    if (dodgeCh > 0 && Math.random() < dodgeCh) {
+      Game.ui.log('💨 你灵巧地闪开了攻击！', 'combat');
+      Game.sfx && Game.sfx.pounce();
+      Game.particles.spawn({ x: p.x, y: p.y, kind: 'ring', size: 26, color: 'rgba(150,220,255,0.7)', life: 0.35 });
+      return;
+    }
+    /* 头饰减伤：树叶雨帽 -2、翡翠护身符 -6、藤甲 -7，能工巧匠每级再 -1 */
+    if (p.equipped.hat === 'leaf_hat') amount -= 2 + skillLevel('craft');
+    else if (p.equipped.hat === 'jade_charm') amount -= 6 + skillLevel('craft');
+    else if (p.equipped.hat === 'vine_armor') amount -= 7 + skillLevel('craft');
+    /* 厚实毛皮：每级减伤 12%（可多级叠加） */
+    amount = Math.max(1, Math.round(amount * Math.pow(0.88, skillLevel('thick'))));
     p.stats.hp -= amount;
     p.hurtT = 0.55;
     Game.ui.log(`💔 你受到 ${amount} 点伤害！`, 'danger');
@@ -1022,7 +1314,9 @@
     e.scentT -= dt;
     if (e.scentT <= 0) {
       Game.particles.emitScent('prey', e.x, e.y, player.sniff.active);
-      e.scentT = player.sniff.active ? 0.14 : 1.1;
+      /* 气味粒子为纯视觉：距玩家越远发射频率越低，压低满容触发率（Top5-6 加分项） */
+      const dS = U.dist(e.x, e.y, player.x, player.y);
+      e.scentT = player.sniff.active ? (dS > 700 ? 0.5 : dS > 380 ? 0.26 : 0.14) : 1.1;
     }
 
     if (e.type === 'salmon') {
@@ -1080,7 +1374,9 @@
     e.scentT -= dt;
     if (e.scentT <= 0) {
       Game.particles.emitScent('predator', e.x, e.y, player.sniff.active);
-      e.scentT = player.sniff.active ? 0.16 : 1.3;
+      /* 气味粒子为纯视觉：距玩家越远发射频率越低，压低满容触发率（Top5-6 加分项） */
+      const dS = U.dist(e.x, e.y, player.x, player.y);
+      e.scentT = player.sniff.active ? (dS > 700 ? 0.5 : dS > 380 ? 0.26 : 0.16) : 1.3;
     }
     const p = player;
     const d = U.dist(e.x, e.y, p.x, p.y);
@@ -1092,11 +1388,8 @@
       Game.ui.log('👂 附近传来脚步声……', 'info');
     }
 
-    /* detection — sneak + tall grass shrink the radius */
-    let detect = e.aggro;
-    if (p.state === 'sneak' && p.tallGrass) detect *= hasSkill('camo') ? 0.18 : 0.35;
-    else if (p.state === 'sneak') detect *= hasSkill('camo') ? 0.4 : 0.55;
-    else if (p.tallGrass) detect *= 0.8;
+    /* detection — 潜行 + 高草统一走 sneakFactor 缩小侦测半径 */
+    let detect = e.aggro * sneakFactor();
     /* dense fog: predators smell you right through it */
     const fog = Game.challenges && Game.challenges.current && Game.challenges.current.type === 'fog';
     if (fog) detect *= 1.6;
@@ -1137,7 +1430,8 @@
       } else {
         e.dir = Math.atan2(p.y - e.y, p.x - e.x);
         const spd = e.type === 'fox' && d > 150 ? e.speed : e.speed * 0.9;
-        moveEntity(e, Math.cos(e.dir) * spd * dt, Math.sin(e.dir) * spd * dt);
+        /* 鳄鱼无视地形：水里岸上都能追击 */
+        moveEntity(e, Math.cos(e.dir) * spd * dt, Math.sin(e.dir) * spd * dt, e.type === 'croc');
       }
       if (d < e.r + p.r + 5 && e.attackCd <= 0) {
         damagePlayer(e.dmg);
@@ -1152,7 +1446,7 @@
       }
       e.wanderT -= dt;
       const spd = e.type === 'viper' ? 0.15 : 0.35;
-      moveEntity(e, Math.cos(e.dir) * e.speed * spd * dt, Math.sin(e.dir) * e.speed * spd * dt);
+      moveEntity(e, Math.cos(e.dir) * e.speed * spd * dt, Math.sin(e.dir) * e.speed * spd * dt, e.type === 'croc');
       /* viper prefers cover */
       if (e.type === 'viper') {
         const t = W.terrainAt(e.x, e.y);
@@ -1251,7 +1545,7 @@
       const gifts = ['herbs', 'sinew', 'berry', 'leaves', 'vines'];
       const g = U.pick(gifts);
       addItem(g);
-      Game.ui.log(`🎁 ${c.name}给你带来了${ITEMS[g].name}！`, 'good');
+      Game.ui.log(`🎁 ${c.name}给你带来了${itemDef(g).name}！`, 'good');
       Game.sfx && Game.sfx.craft();
     }
     /* floating hearts near very friendly cats */
@@ -1303,7 +1597,7 @@
     c.friendship = Math.min(100, c.friendship + gain);
     player.stats.mood = Math.min(player.stats.moodMax, player.stats.mood + 8);
     addXp(6);
-    Game.ui.log(`🍖 你把${ITEMS[giftId].name}分给${c.name}！（+${gain} ♥）`, 'good');
+    Game.ui.log(`🍖 你把${itemDef(giftId).name}分给${c.name}！（+${gain} ♥）`, 'good');
     Game.sfx && Game.sfx.eat();
     Game.particles.spawn({ x: c.x, y: c.y - 16, kind: 'ring', size: 20, color: 'rgba(255,180,120,0.7)', life: 0.5 });
     if (first) {
@@ -1422,7 +1716,7 @@
     }
 
     /* 2) nearby world features */
-    const f = W.findNearest(['gate', 'berry', 'catnip', 'spring', 'cave', 'herbs', 'trashcan', 'dumpster'], p.x, p.y, 90);
+    const f = W.findNearest(['gate', 'berry', 'catnip', 'spring', 'cave', 'herbs', 'trashcan', 'dumpster', 'gemnode', 'cactus', 'dragonherb', 'reishi', 'vine', 'shelter'], p.x, p.y, 90);
     if (f) {
       switch (f.type) {
         case 'berry': {
@@ -1451,6 +1745,51 @@
           Game.ui.log('🌼 采到草药。', 'good');
           Game.sfx && Game.sfx.pick();
           break;
+        case 'cactus':
+          addItem('cactus_fruit', 1);
+          f.regrowT = 40;
+          addXp(3);
+          Game.ui.log('🌵 掰下一枚仙人掌果——荒漠中的甘露！', 'good');
+          Game.sfx && Game.sfx.pick();
+          break;
+        case 'dragonherb':
+          addItem('dragon_herb', 1);
+          f.regrowT = 35;
+          addXp(5);
+          Game.ui.log('🌹 采到殷红的龙血草，药力强劲！', 'good');
+          Game.sfx && Game.sfx.pick();
+          break;
+        case 'reishi':
+          addItem('reishi', 1);
+          f.regrowT = 35;
+          addXp(5);
+          Game.ui.log('🍄 摘下古树上的灵芝，灵光流转。', 'good');
+          Game.sfx && Game.sfx.pick();
+          break;
+        case 'vine':
+          addItem('vine_strand', 1);
+          f.regrowT = 40;
+          addXp(3);
+          Game.ui.log('🪵 割下一段坚韧的藤条。', 'good');
+          Game.sfx && Game.sfx.pick();
+          break;
+        case 'shelter':
+          /* 避难所：蜷进去睡到天亮（城市暗巷 / 森林树洞） */
+          Game.ui.log('😴 你蜷进避难所，沉沉睡去……', 'info');
+          Game.sfx && Game.sfx.cave();
+          Game.ui.fadeTo(1, () => {
+            Game.state.sec = 6.5 * (Game.state.DAY_LEN / 24);
+            Game.state.day++;
+            const s = p.stats;
+            s.hp = Math.min(s.hpMax, s.hp + 40);
+            s.stamina = s.staminaMax;
+            s.mood = Math.min(s.moodMax, s.mood + 20);
+            s.wetness = 0;
+            Game.ui.log('🌅 你在黎明中醒来，精神焕发！（+40 生命，体力全满）', 'good');
+            Game.ui.fadeTo(0, null);
+          });
+          p.interactCd = 1.5;
+          break;
         case 'spring': {
           p.stats.hydration = Math.min(p.stats.hydrationMax, p.stats.hydration + 38);
           p.interactCd = 1.2;
@@ -1463,8 +1802,20 @@
           enterCave();
           break;
         }
+        case 'gemnode': {
+          /* 采集宝石：60 秒后再生 */
+          const gem = Math.random() < 0.4 ? 'gem_ruby' : Math.random() < 0.55 ? 'gem_sapphire' : 'gem_jade';
+          addItem(gem, 1);
+          f.regrowT = 60;
+          addXp(4);
+          Game.ui.log(`💎 采到一颗${itemDef(gem).name}！（60 秒后再生）`, 'good');
+          Game.sfx && Game.sfx.pick();
+          Game.particles.spawn({ x: p.x, y: p.y - 10, kind: 'sparkle', size: 3, color: 'rgba(255,255,180,0.9)', vx: U.randRange(-6, 6), vy: -14, life: 0.7 });
+          p.interactCd = 0.8;
+          break;
+        }
         case 'gate': {
-          /* 前往新区域（有等级门槛） */
+          /* 前往新区域 */
           Game.transitionZone && Game.transitionZone(f);
           p.interactCd = 1.5;
           break;
@@ -1479,7 +1830,7 @@
             const got = U.pick(pool);
             addItem(got, big ? U.randInt(1, 2) : 1);
             addXp(2);
-            Game.ui.log(`🗑 你在垃圾堆里翻出了${ITEMS[got].name}！`, 'good');
+            Game.ui.log(`🗑 你在垃圾堆里翻出了${itemDef(got).name}！`, 'good');
           } else {
             Game.ui.log('🗑 垃圾桶里空空如也……', 'info');
           }
@@ -1575,22 +1926,69 @@
       const e = list[i];
       if ((e.kind === 'prey' || e.kind === 'predator' || e.kind === 'straydog') && !e.alive) list.splice(i, 1);
     }
+    /* 场景内缓慢补刷怪物：保证始终有敌人可打、有经验可刷 */
+    respawnT -= dt;
+    if (respawnT <= 0) {
+      respawnT = 8;
+      respawnHostiles();
+    }
     /* Boss + 弹弓弹道 */
     updateBoss(dt);
     updateProjectiles(dt);
   }
 
+  /* 补刷：普通捕食者 + 流浪狗，密度低于目标的 70% 时在玩家周围补一只 */
+  function respawnHostiles() {
+    const p = player;
+    if (!p) return;
+    const alivePred = list.filter((e) => e.kind === 'predator' && e.alive).length;
+    const aliveDogs = list.filter((e) => e.kind === 'straydog' && e.alive).length;
+    const cfg = ZONE_SPAWN[Game.world.zone] || ZONE_SPAWN[0];
+    const dm = densityMul();
+    if (alivePred < Math.round(predTarget * 0.7) && predTarget > 0) {
+      const types = Object.keys(cfg.pred || {});
+      if (types.length) {
+        const type = U.pick(types);
+        for (let tries = 0; tries < 140; tries++) {
+          const tx = U.randInt(4, W.W - 4), ty = U.randInt(4, W.H - 4);
+          if (!canSpawnPred(type, tx, ty)) continue;
+          const wx = (tx + 0.5) * W.TILE, wy = (ty + 0.5) * W.TILE;
+          const d2 = U.dist2(wx, wy, p.x, p.y);
+          if (d2 < 380 * 380) continue;     /* 别刷在玩家脸上 */
+          if (d2 > 1350 * 1350) continue;   /* 别刷到看不见的地方 */
+          spawnPredator(type, tx, ty);
+          break;
+        }
+      }
+    }
+    if (aliveDogs < Math.round(strayTarget * 0.7) && strayTarget > 0) {
+      for (let tries = 0; tries < 80; tries++) {
+        const tx = U.randInt(4, W.W - 4), ty = U.randInt(4, W.H - 4);
+        if (!W.canWalk(tx, ty)) continue;
+        const wx = (tx + 0.5) * W.TILE, wy = (ty + 0.5) * W.TILE;
+        const d2 = U.dist2(wx, wy, p.x, p.y);
+        if (d2 < 380 * 380) continue;
+        if (d2 > 1350 * 1350) continue;
+        spawnStrayDog(tx, ty);
+        break;
+      }
+    }
+  }
+
   Game.entities = {
-    list, companions, ITEMS, RECIPES, PREY, PRED, BOSS_DEFS,
+    list, companions, ITEMS, RECIPES, PREY, PRED, BOSS_DEFS, itemDef,
     get player() { return player; },
     get boss() { return boss; },
     get bossProjectiles() { return bossProjectiles; },
     init, update, updateVitals, interact, useItem, addItem, removeItem, countItem,
+    spawnCompanion,
     petCompanion, feedCompanion, adoptCompanion,
     summonCompanion, hitStrayDog,
     damagePlayer, enterCave, exitCave,
-    xpToLevel, addXp, learnSkill, hasSkill, grantSkillBook, grantSkillPoint, hitBoss, recalcMaxStats,
-    pounceDmg, critChance, snapToWalkable,
-    SKILL_NAMES,
+    xpToLevel, addXp, learnSkill, hasSkill, skillLevel, grantSkillBook, grantSkillPoint, hitBoss, recalcMaxStats,
+    pounceDmg, critChance, snapToWalkable, staminaRegenMult, craftMult,
+    sneakFactor,
+    difficultyK, scaledHp, scaledDmg, scaledXp, densityMul,
+    SKILL_NAMES, SKILL_DEFS,
   };
 })();

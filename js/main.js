@@ -93,9 +93,16 @@
 
   function rollWeather() {
     const r = Math.random();
-    if (r < 0.55) state.weather = 'clear';
-    else if (r < 0.85) state.weather = 'rain';
-    else state.weather = 'mist';
+    const z = Game.world.zone;
+    if (z === 2) {
+      /* 干燥荒野：几乎不下雨（荒漠缺水） */
+      state.weather = r < 0.8 ? 'clear' : 'mist';
+    } else if (z === 3) {
+      /* 幽暗森林：多雨（需藤甲等道具反制） */
+      state.weather = r < 0.28 ? 'clear' : r < 0.82 ? 'rain' : 'mist';
+    } else {
+      state.weather = r < 0.55 ? 'clear' : r < 0.85 ? 'rain' : 'mist';
+    }
     state.weatherT = U.randRange(40, 90);
     const meta = { clear: '☀️ 天空放晴了。', rain: '🌧️ 开始下雨了……', mist: '🌫️ 一阵轻雾弥漫开来。' };
     Game.ui.log(meta[state.weather], 'info');
@@ -129,12 +136,11 @@
   }
 
   /* ---------------------------------------------------------------- cave */
-  const CAVE_WORK = { x: 250, y: 500 };   /* 工作台：制作物品 */
   state.caveInteract = function () {
     const p = Game.entities.player;
     const fire = Game.render.CAVE_FIRE, bed = Game.render.CAVE_BED, exit = Game.render.CAVE_EXIT;
-    /* 工作台：打开制作面板 */
-    if (U.dist2(p.x, p.y, CAVE_WORK.x, CAVE_WORK.y) < 80 * 80) {
+    /* 工作台：打开制作面板（坐标单一来源 Game.render.CAVE_WORK，见中17） */
+    if (U.dist2(p.x, p.y, Game.render.CAVE_WORK.x, Game.render.CAVE_WORK.y) < 80 * 80) {
       Game.ui.openCrafting && Game.ui.openCrafting();
       Game.ui.log('🛠 你在工作台前准备制作物品。', 'craft');
       return;
@@ -183,6 +189,7 @@
     p.animT += dt;
     p.hurtT = Math.max(0, p.hurtT - dt);
     p.interactCd = Math.max(0, p.interactCd - dt);   /* 关键修复：洞穴里冷却也要走表 */
+    p.summonCd = Math.max(0, p.summonCd - dt);        /* 召唤冷却在洞穴里同样递减 */
     let mx = inp.mx, my = inp.my;
     const len = Math.hypot(mx, my);
     if (len > 0) { mx /= len; my /= len; }
@@ -196,7 +203,7 @@
     if (len > 0) {
       p.stats.stamina = Math.max(0, p.stats.stamina - dt * 3.2);
     } else {
-      p.stats.stamina = Math.min(p.stats.staminaMax, p.stats.stamina + dt * 7 * wetPenalty * (p.equipped.hat ? 1.25 : 1) * (p.skills.includes('swift') ? 1.25 : 1));
+      p.stats.stamina = Math.min(p.stats.staminaMax, p.stats.stamina + dt * 7 * wetPenalty * (p.equipped.hat ? 1.25 : 1) * Game.entities.staminaRegenMult());
     }
     if (inp.interact) Game.entities.interact();
     if (inp.pounce) Game.ui.log('😺 这里施展不开扑击！', 'info');
@@ -280,7 +287,10 @@
         level: p.level, xp: p.xp, skills: p.skills, skillPoints: p.skillPoints,
         summonCd: p.summonCd,
         journey: state.journey,
-        friends: Game.entities.companions.map((c) => ({ name: c.name, friendship: c.friendship, perk: c.perk, colorIdx: c.colorIdx })),
+        friends: Game.entities.companions.map((c) => ({
+          id: c.id, name: c.name, friendship: c.friendship, perk: c.perk,
+          colorIdx: c.colorIdx, met: c.met, adopted: c.adopted,
+        })),
       };
       localStorage.setItem('wfissave', JSON.stringify(data));
     } catch (e) { /* storage unavailable */ }
@@ -291,42 +301,118 @@
       const raw = localStorage.getItem('wfissave');
       if (!raw) return null;
       const d = JSON.parse(raw);
-      if (typeof d.seed !== 'number') return null;
+      /* 种子必须是有限数值，否则视为无存档（防止恶意 JSON 直接污染 state） */
+      if (!d || typeof d !== 'object' || typeof d.seed !== 'number' || !isFinite(d.seed)) return null;
       state.seed = d.seed;
-      state.baseSeed = d.baseSeed || d.seed;
-      state.zone = d.zone || 0;
-      if (d.bossDefeated) state.bossDefeated = d.bossDefeated;
-      state.sec = d.sec;
-      state.day = d.day;
-      state.weather = d.weather;
+      state.baseSeed = (typeof d.baseSeed === 'number' && isFinite(d.baseSeed)) ? d.baseSeed : d.seed;
+      state.zone = (typeof d.zone === 'number' && d.zone >= 0 && d.zone <= 3 && Math.floor(d.zone) === d.zone) ? d.zone : 0;
+      if (d.bossDefeated && typeof d.bossDefeated === 'object') {
+        const bd = {};
+        for (const z in d.bossDefeated) {
+          if (/^[0-3]$/.test(z)) bd[z] = !!d.bossDefeated[z];
+        }
+        state.bossDefeated = bd;
+      }
+      state.sec = (typeof d.sec === 'number' && isFinite(d.sec)) ? ((d.sec % state.DAY_LEN) + state.DAY_LEN) % state.DAY_LEN : state.sec;
+      state.day = (typeof d.day === 'number' && isFinite(d.day) && d.day >= 1) ? Math.floor(d.day) : state.day;
+      state.weather = (d.weather === 'clear' || d.weather === 'rain' || d.weather === 'mist') ? d.weather : state.weather;
       return d;
     } catch (e) { return null; }
   }
 
+  /* 存档数值兜底：非法/非有限值回退到默认值，再夹到 [min,max]，杜绝 NaN 传播 */
+  function clampNum(v, def, min, max) {
+    const n = Number(v);
+    if (!isFinite(n)) return def;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  /* 字段白名单校验：恶意 localStorage（skills={}、inventory=null、level='x' 等）
+     绝不能导致运行时崩溃或黑屏 —— 每类字段都做类型校验 + 兜底 */
   function applySave(d) {
     const p = Game.entities.player;
-    p.x = d.px; p.y = d.py;
+    const E = Game.entities;
+    const ww = Game.world.W * Game.world.TILE, wh = Game.world.H * Game.world.TILE;
+    /* 位置：有限数值 + 世界边界夹取（snapToWalkable 再兜底吸附） */
+    p.x = clampNum(d.px, p.x, 0, ww);
+    p.y = clampNum(d.py, p.y, 0, wh);
     p.inCave = !!d.inCave;
-    p.outside.x = d.ox; p.outside.y = d.oy;
-    p.stats.hp = d.hp;
-    p.stats.satiety = d.satiety;
-    p.stats.hydration = d.hydration;
-    p.stats.stamina = d.stamina;
-    p.stats.mood = d.mood;
-    p.stats.wetness = d.wetness;
-    p.inventory = d.inventory || [];
-    p.equipped = d.equipped || { hat: null, collar: null };
-    p.level = d.level || 1;
-    p.xp = d.xp || 0;
-    p.skills = d.skills || [];
-    p.skillPoints = d.skillPoints || 0;
-    p.summonCd = d.summonCd || 0;
-    if (d.journey) state.journey = Object.assign({}, state.journey, d.journey);
+    p.outside.x = clampNum(d.ox, p.x, 0, ww);
+    p.outside.y = clampNum(d.oy, p.y, 0, wh);
+    /* 状态数值 */
+    p.stats.hp = clampNum(d.hp, p.stats.hp, 0, 99999);
+    p.stats.satiety = clampNum(d.satiety, p.stats.satiety, 0, 100);
+    p.stats.hydration = clampNum(d.hydration, p.stats.hydration, 0, 100);
+    p.stats.stamina = clampNum(d.stamina, p.stats.stamina, 0, 9999);
+    p.stats.mood = clampNum(d.mood, p.stats.mood, 0, 9999);
+    p.stats.wetness = clampNum(d.wetness, p.stats.wetness, 0, 100);
+    /* 背包：只接受数组，且每项必须是 {id: 已知物品字符串, qty: 正整数}（hasOwnProperty 防原型链伪造） */
+    p.inventory = Array.isArray(d.inventory)
+      ? d.inventory.filter((it) =>
+          it && typeof it === 'object' && typeof it.id === 'string' && it.id.length > 0 &&
+          Object.prototype.hasOwnProperty.call(E.ITEMS, it.id) &&
+          typeof it.qty === 'number' && isFinite(it.qty) && it.qty > 0
+        ).map((it) => ({ id: it.id, qty: Math.min(9999, Math.floor(it.qty)) }))
+      : [];
+    /* 装备：只保留 hat/collar/claw 三键，值只能是 null 或已知物品 id */
+    const eq = (d.equipped && typeof d.equipped === 'object') ? d.equipped : {};
+    p.equipped = { hat: null, collar: null, claw: null };
+    for (const slot of ['hat', 'collar', 'claw']) {
+      const v = eq[slot];
+      p.equipped[slot] = (v === null || (typeof v === 'string' && Object.prototype.hasOwnProperty.call(E.ITEMS, v))) ? v : null;
+    }
+    /* 兼容旧存档：已装备的物品必须在行囊中存在（装备物始终留在行囊），缺失则补回一件 */
+    for (const slot of ['hat', 'collar', 'claw']) {
+      const v = p.equipped[slot];
+      if (v && !p.inventory.some((i) => i.id === v)) {
+        p.inventory.push({ id: v, qty: 1 });
+      }
+    }
+    /* 等级 / 经验 / 技能点 */
+    p.level = clampNum(d.level, 1, 1, 999);
+    p.xp = clampNum(d.xp, 0, 0, 99999999);
+    p.skillPoints = clampNum(d.skillPoints, 0, 0, 99999);
+    /* 技能：必须是数组且元素是已知技能 id 字符串（可重复技能由重复元素表达，保留） */
+    p.skills = Array.isArray(d.skills)
+      ? d.skills.filter((s) => typeof s === 'string' && Object.prototype.hasOwnProperty.call(E.SKILL_DEFS, s)).slice(0, 128)
+      : [];
+    p.summonCd = clampNum(d.summonCd, 0, 0, 3600);
+    /* journey：白名单键合并（杜绝 __proto__ 原型污染；Object.assign 直合并会触发原型 setter） */
+    if (d.journey && typeof d.journey === 'object') {
+      const J_KEYS = ['preyCaught', 'predatorsSlain', 'challengesWon', 'petsAdopted', 'fishCaught', 'xpTotal'];
+      for (const k of J_KEYS) {
+        const v = d.journey[k];
+        if (typeof v === 'number' && isFinite(v) && v >= 0) state.journey[k] = Math.floor(v);
+      }
+    }
     Game.entities.recalcMaxStats(p);
-    Game.entities.companions.forEach((c, i) => {
-      const f = d.friends && d.friends[i];
-      if (f) { c.name = f.name; c.friendship = f.friendship; c.perk = f.perk; c.colorIdx = f.colorIdx; }
-    });
+    /* 伙伴回填：按唯一 id 匹配（不再按数组索引，避免错位）；找不到就跳过保持原样 */
+    const savedFriends = Array.isArray(d.friends) ? d.friends : [];
+    const byId = {};
+    for (const f of savedFriends) {
+      if (f && typeof f === 'object' && typeof f.id === 'string') byId[f.id] = f;
+    }
+    for (const c of Game.entities.companions) {
+      const f = byId[c.id];
+      if (!f) continue;
+      if (typeof f.name === 'string' && f.name) c.name = f.name;
+      c.friendship = clampNum(f.friendship, c.friendship, 0, 100);
+      c.perk = clampNum(f.perk, c.perk, 0, 3);
+      c.colorIdx = (Number.isInteger(f.colorIdx) && f.colorIdx >= 0 && f.colorIdx <= 2) ? f.colorIdx : c.colorIdx;
+      c.met = !!f.met;
+      c.adopted = !!f.adopted;
+    }
+    /* 存档中已收养但当前场景未匹配到的猫：按存档重建一只（保证页面刷新后伙伴不丢） */
+    for (const f of savedFriends) {
+      if (!f || typeof f !== 'object' || !f.adopted || typeof f.id !== 'string') continue;
+      const exists = Game.entities.companions.some((c) => c.id === f.id);
+      if (!exists) {
+        Game.entities.spawnCompanion({
+          id: f.id, name: f.name, colorIdx: f.colorIdx,
+          friendship: f.friendship, perk: f.perk, met: true, adopted: true,
+        });
+      }
+    }
     if (p.inCave) {
       state.cave = true;
       p.x = U.clamp(p.x, 46, Game.render.CAVE.w - 46);
@@ -431,6 +517,14 @@
       Game.entities.init(to, pos, true);
       snapPlayerWalkable();   /* 兜底：绝不让玩家卡在墙里 */
       state.cave = false;
+      /* 场景天气基调：荒漠无雨、森林多雨 */
+      if (to === 2) {
+        state.weather = 'clear';
+        state.weatherT = U.randRange(40, 90);
+      } else if (to === 3 && Math.random() < 0.55) {
+        state.weather = 'rain';
+        state.weatherT = U.randRange(50, 100);
+      }
       Game.ui.log(`⛩ 你进入了【${Game.world.ZONE_INFO[to].name}】！`, 'good');
       Game.sfx && Game.sfx.cave();
       Game.ui.fadeTo(0, null);
@@ -441,7 +535,7 @@
   /* -------------------------------------------------------------- boot */
   function boot() {
     resize();
-    const save = tryLoad();
+    const loaded = tryLoad();
     state.baseSeed = state.baseSeed || state.seed;
     Game.world.generate(state.seed, state.zone);
     Game.render.init();
@@ -450,7 +544,7 @@
     state.caveBed = Game.render.CAVE_BED;
     state.caveRack = Game.render.CAVE_RACK;
     state.caveExit = Game.render.CAVE_EXIT;
-    if (save) applySave(save);
+    if (loaded) applySave(loaded);
     snapPlayerWalkable();   /* 旧存档若卡在墙里，自动吸附出来 */
     Game.ui.init();
 

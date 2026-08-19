@@ -2,9 +2,9 @@
    Wilderness Feline Instinct — world.js
    Multi-zone procedural world generation:
      Zone 0 荒野草原 (Wild Meadow)      — entry zone
-     Zone 1 城市小区 (City District)    — Lv 5 gate
-     Zone 2 干燥荒野 (Dry Wasteland)    — Lv 10 gate
-     Zone 3 幽暗森林 (Dark Forest)      — Lv 15 gate
+     Zone 1 城市小区 (City District)
+     Zone 2 干燥荒野 (Dry Wasteland)
+     Zone 3 幽暗森林 (Dark Forest)
    Each zone has edge gates connecting to others, and its own terrain.
    ========================================================================== */
 (function () {
@@ -15,13 +15,14 @@
   const TILE = 48;
   const W = 168;
   const H = 168;
-  const T = { MEADOW: 0, FOREST: 1, WATER: 2, SAND: 3, GRASS: 4, ROCK: 5, WALL: 6, ROAD: 7, DIRT: 8, SWAMP: 9, URBAN: 10 };
+  const T = { MEADOW: 0, FOREST: 1, WATER: 2, SAND: 3, GRASS: 4, ROCK: 5, WALL: 6, ROAD: 7, DIRT: 8, SWAMP: 9, URBAN: 10, LAVA: 11 };
 
+  /* 各区域仅展示用名称；min 字段已随等级门一并移除（transitionZone 从不检查等级） */
   const ZONE_INFO = {
-    0: { name: '荒野草原', min: 1 },
-    1: { name: '城市小区', min: 5 },
-    2: { name: '干燥荒野', min: 10 },
-    3: { name: '幽暗森林', min: 15 },
+    0: { name: '荒野草原' },
+    1: { name: '城市小区' },
+    2: { name: '干燥荒野' },
+    3: { name: '幽暗森林' },
   };
 
   const terrain = new Uint8Array(W * H);
@@ -42,7 +43,7 @@
   const canWalk = (tx, ty) => {
     if (!inBounds(tx, ty)) return false;
     const t = terrain[idx(tx, ty)];
-    return t !== T.WATER && t !== T.ROCK && t !== T.WALL;
+    return t !== T.WATER && t !== T.ROCK && t !== T.WALL && t !== T.LAVA;
   };
 
   /* ---------------------------------------------------------------- wild */
@@ -92,11 +93,12 @@
       }
       rivers.push(river);
     }
-    /* caves — 洞穴是小猫的基地，多放一些 */
+    /* caves — 洞穴是小猫的基地，多放一些（互相至少相隔 10 格，不挤在一起） */
     let caves = 0;
-    for (let tries = 0; tries < 5000 && caves < 8; tries++) {
+    for (let tries = 0; tries < 8000 && caves < 8; tries++) {
       const tx = U.randInt(14, W - 14), ty = U.randInt(14, H - 14);
       if (n2.fbm(tx * 0.035, ty * 0.035, 3) > 0.6 && terrain[idx(tx, ty)] === T.MEADOW) {
+        if (features.some((f) => (f.type === 'cave' || f.type === 'shelter') && Math.hypot(f.tx - tx, f.ty - ty) < 10)) continue;
         features.push({ type: 'cave', tx, ty, regrowT: 0 });
         caves++;
       }
@@ -222,6 +224,9 @@
     for (const [dx, dy] of [[30, CITY.Y1 - 1], [56, CITY.Y0 + 1], [108, CITY.Y1 - 1], [134, CITY.Y0 + 1]]) {
       if (inBounds(dx, dy) && canWalk(dx, dy)) features.push({ type: 'dumpster', tx: dx, ty: dy, regrowT: 0 });
     }
+    /* 狭窄暗巷避难所：城市里可以睡觉的角落 */
+    features.push({ type: 'shelter', tx: 98, ty: 80, variant: 'alley', regrowT: 0 });
+    features.push({ type: 'shelter', tx: 118, ty: 86, variant: 'alley', regrowT: 0 });
     /* --- 出生点：西端广场 --- */
     const cx = 15, cy = CITY.MID;
     terrain[idx(cx, cy)] = T.URBAN;
@@ -265,9 +270,69 @@
       const tx = U.randInt(6, W - 6), ty = U.randInt(6, H - 6);
       if (terrain[idx(tx, ty)] === T.DIRT) features.push({ type: 'catnip', tx, ty, regrowT: 0 });
     }
+    /* 水源稀少：只有 1 处泉水（荒漠缺水，但不下雨也几乎无雨） */
+    for (let i = 0; i < 1; i++) {
+      for (let tries = 0; tries < 200; tries++) {
+        const tx = U.randInt(8, W - 8), ty = U.randInt(8, H - 8);
+        if (terrain[idx(tx, ty)] === T.DIRT) { features.push({ type: 'spring', tx, ty, regrowT: 0 }); break; }
+      }
+    }
+    /* 仙人掌：荒漠里的天然水囊 */
     for (let i = 0; i < 3; i++) {
-      const tx = U.randInt(8, W - 8), ty = U.randInt(8, H - 8);
-      if (terrain[idx(tx, ty)] === T.DIRT) features.push({ type: 'spring', tx, ty, regrowT: 0 });
+      for (let tries = 0; tries < 200; tries++) {
+        const tx = U.randInt(8, W - 8), ty = U.randInt(8, H - 8);
+        if (terrain[idx(tx, ty)] === T.DIRT || terrain[idx(tx, ty)] === T.SAND) {
+          features.push({ type: 'cactus', tx, ty, regrowT: 0 });
+          break;
+        }
+      }
+    }
+    /* 龙血草：火山岩缝中的高级草药 */
+    for (let i = 0; i < 4; i++) {
+      for (let tries = 0; tries < 200; tries++) {
+        const tx = U.randInt(8, W - 8), ty = U.randInt(8, H - 8);
+        if (terrain[idx(tx, ty)] === T.DIRT) {
+          features.push({ type: 'dragonherb', tx, ty, regrowT: 0 });
+          break;
+        }
+      }
+    }
+    /* 火山口：2-3 座大型火山，稀疏分布（熔岩不可通行，岩壁环绕） */
+    const craterCenters = [];
+    const craters = U.randInt(2, 3);
+    for (let c = 0; c < craters; c++) {
+      let cx2 = 0, cy2 = 0, ok = false;
+      for (let tries = 0; tries < 300 && !ok; tries++) {
+        cx2 = U.randInt(22, W - 22);
+        cy2 = U.randInt(20, H - 20);
+        if (Math.abs(cx2 - (W >> 1)) < 16 && Math.abs(cy2 - (H >> 1)) < 16) continue;      /* 远离出生点 */
+        if (Math.hypot(cx2 - 146, cy2 - 146) < 24) continue;                               /* 避开右下 Boss 竞技场 */
+        ok = craterCenters.every(([x, y]) => Math.hypot(cx2 - x, cy2 - y) > 60);
+      }
+      if (!ok) continue;
+      craterCenters.push([cx2, cy2]);
+      const R = U.randInt(6, 9);
+      for (let dy = -R - 2; dy <= R + 2; dy++) {
+        for (let dx = -R - 2; dx <= R + 2; dx++) {
+          const tx = cx2 + dx, ty = cy2 + dy;
+          if (!inBounds(tx, ty)) continue;
+          const d = Math.hypot(dx, dy);
+          if (d <= R - 1.5) terrain[idx(tx, ty)] = T.LAVA;
+          else if (d <= R + 0.5) terrain[idx(tx, ty)] = T.ROCK;
+        }
+      }
+      /* 火山口周围的宝石矿脉 */
+      for (let i = 0; i < U.randInt(2, 3); i++) {
+        const a = U.randRange(0, U.TAU);
+        const tx = Math.round(cx2 + Math.cos(a) * (R + 2.5 + U.randRange(0, 2)));
+        const ty = Math.round(cy2 + Math.sin(a) * (R + 2.5 + U.randRange(0, 2)));
+        if (inBounds(tx, ty) && terrain[idx(tx, ty)] === T.DIRT) features.push({ type: 'gemnode', tx, ty, regrowT: 0 });
+      }
+    }
+    /* 荒野中偶尔也有零散宝石矿 */
+    for (let i = 0; i < 2; i++) {
+      const tx = U.randInt(12, W - 12), ty = U.randInt(12, H - 12);
+      if (terrain[idx(tx, ty)] === T.DIRT) features.push({ type: 'gemnode', tx, ty, regrowT: 0 });
     }
     /* spawn */
     const cx = W >> 1, cy = H >> 1;
@@ -276,58 +341,91 @@
   }
 
   /* ---------------------------------------------------------- dark forest */
+  /* 幽暗森林：一条纵贯的长路，两侧是不可通行的高大树木林（WALL），
+     路上有泥沼（鳄鱼）与猴群，南端右下角是巨蛇守护的 Boss 竞技场 */
   function genDarkForest() {
-    const noise = U.makeNoise(seed);
-    terrain.fill(T.FOREST);
-    for (let ty = 0; ty < H; ty++) {
-      for (let tx = 0; tx < W; tx++) {
-        const s = noise.fbm(tx * 0.03 + 40, ty * 0.03 + 40, 4);
-        if (s > 0.66) terrain[idx(tx, ty)] = T.SWAMP;
-        else if (s < 0.3 && U.hash2(tx, ty) > 0.5) terrain[idx(tx, ty)] = T.MEADOW;   /* clearings */
+    terrain.fill(T.WALL);
+    const R0 = 76, R1 = 90;
+    /* 长路：土路 + 草地 + 林间空地 */
+    for (let ty = 4; ty <= 152; ty++) {
+      for (let tx = R0; tx <= R1; tx++) {
+        const h = U.hash2(tx, ty);
+        terrain[idx(tx, ty)] = h > 0.72 ? T.MEADOW : h > 0.34 ? T.DIRT : T.GRASS;
       }
     }
-    /* few springs */
+    /* 路上的泥沼坑（鳄鱼栖息地） */
+    for (const sy of [16, 44, 72, 100, 126]) {
+      for (let i = 0; i < 5; i++) {
+        const tx = U.randInt(R0 + 1, R1 - 1);
+        terrain[idx(tx, sy + U.randInt(-1, 1))] = T.SWAMP;
+      }
+    }
+    /* 道路中段的水潭（钓鱼 + 鳄鱼） */
+    for (let dy = 0; dy < 5; dy++) {
+      for (let dx = 0; dx < 4; dx++) {
+        const tx = 79 + dx, ty = 134 + dy;
+        const d = Math.hypot(dx - 1.5, dy - 2);
+        if (d <= 2.2) terrain[idx(tx, ty)] = T.WATER;
+        else if (d <= 3) terrain[idx(tx, ty)] = T.SWAMP;
+      }
+    }
+    /* 南端右下角：Boss 竞技场 + 连接走廊 */
+    for (let ty = 128; ty <= 162; ty++) {
+      for (let tx = 128; tx <= 164; tx++) {
+        terrain[idx(tx, ty)] = (U.hash2(tx, ty) > 0.6 ? T.MEADOW : T.DIRT);
+      }
+    }
+    for (let ty = 136; ty <= 144; ty++) {
+      for (let tx = 90; tx <= 128; tx++) terrain[idx(tx, ty)] = T.DIRT;
+    }
+    /* 路上的资源与宝石矿 */
+    for (let i = 0; i < 8; i++) {
+      const tx = U.randInt(R0 + 1, R1 - 1), ty = U.randInt(8, 148);
+      if (terrain[idx(tx, ty)] !== T.SWAMP) features.push({ type: 'herbs', tx, ty, regrowT: 0 });
+    }
     for (let i = 0; i < 4; i++) {
-      const tx = U.randInt(8, W - 8), ty = U.randInt(8, H - 8);
-      if (terrain[idx(tx, ty)] === T.MEADOW || terrain[idx(tx, ty)] === T.FOREST) {
-        terrain[idx(tx, ty)] = T.MEADOW;
-        features.push({ type: 'spring', tx, ty, regrowT: 0 });
-      }
+      const tx = U.randInt(R0 + 1, R1 - 1), ty = U.randInt(8, 148);
+      if (terrain[idx(tx, ty)] !== T.SWAMP) features.push({ type: 'catnip', tx, ty, regrowT: 0 });
     }
-    for (let i = 0; i < 10; i++) {
-      const tx = U.randInt(4, W - 4), ty = U.randInt(4, H - 4);
-      if (terrain[idx(tx, ty)] === T.MEADOW) features.push({ type: 'herbs', tx, ty, regrowT: 0 });
-    }
-    for (let i = 0; i < 5; i++) {
-      const tx = U.randInt(6, W - 6), ty = U.randInt(6, H - 6);
-      if (terrain[idx(tx, ty)] === T.MEADOW) features.push({ type: 'catnip', tx, ty, regrowT: 0 });
-    }
-    let caves = 0;
-    for (let tries = 0; tries < 3000 && caves < 4; tries++) {
-      const tx = U.randInt(12, W - 12), ty = U.randInt(12, H - 12);
-      if (terrain[idx(tx, ty)] === T.MEADOW) { features.push({ type: 'cave', tx, ty, regrowT: 0 }); caves++; }
-    }
-    /* spawn in a clearing */
-    let best = null, bd = Infinity;
-    const cx = W >> 1, cy = H >> 1;
-    for (let dy = -30; dy <= 30; dy++) {
-      for (let dx = -30; dx <= 30; dx++) {
-        const tx = cx + dx, ty = cy + dy;
-        if (!inBounds(tx, ty)) continue;
-        if (terrain[idx(tx, ty)] === T.MEADOW) {
-          const d = dx * dx + dy * dy;
-          if (d < bd) { bd = d; best = { x: (tx + 0.5) * TILE, y: (ty + 0.5) * TILE }; }
+    /* 路上的洞穴（互相及与树洞避难所至少相隔 8 格，不挨在一起） */
+    const HOLLOWS = [[83, 56], [85, 104]];
+    for (let i = 0; i < 3; i++) {
+      for (let tries = 0; tries < 400; tries++) {
+        const tx = U.randInt(R0 + 1, R1 - 1), ty = U.randInt(8, 148);
+        if (terrain[idx(tx, ty)] === T.SWAMP) continue;
+        const nearFeat = features.some((f) => (f.type === 'cave' || f.type === 'shelter') && Math.hypot(f.tx - tx, f.ty - ty) < 8);
+        const nearHollow = HOLLOWS.some(([hx, hy]) => Math.hypot(hx - tx, hy - ty) < 8);
+        if (!nearFeat && !nearHollow) {
+          features.push({ type: 'cave', tx, ty, regrowT: 0 });
+          break;
         }
       }
     }
-    spawn = best || { x: cx * TILE, y: cy * TILE };
+    for (let i = 0; i < 4; i++) {
+      const tx = U.randInt(R0 + 1, R1 - 1), ty = U.randInt(8, 148);
+      features.push({ type: 'gemnode', tx, ty, regrowT: 0 });
+    }
+    /* 藤条与灵芝：森林的高级采集物 */
+    for (let i = 0; i < 5; i++) {
+      const tx = U.randInt(R0 + 1, R1 - 1), ty = U.randInt(8, 148);
+      if (terrain[idx(tx, ty)] !== T.SWAMP) features.push({ type: 'vine', tx, ty, regrowT: 0 });
+    }
+    for (let i = 0; i < 5; i++) {
+      const tx = U.randInt(R0 + 1, R1 - 1), ty = U.randInt(8, 148);
+      if (terrain[idx(tx, ty)] !== T.SWAMP) features.push({ type: 'reishi', tx, ty, regrowT: 0 });
+    }
+    /* 幽深树洞避难所：长路上可睡觉 */
+    features.push({ type: 'shelter', tx: 83, ty: 56, variant: 'hollow', regrowT: 0 });
+    features.push({ type: 'shelter', tx: 85, ty: 104, variant: 'hollow', regrowT: 0 });
+    /* 出生点：长路北端 */
+    spawn = { x: (83 + 0.5) * TILE, y: 12 * TILE };
   }
 
   /* ------------------------------------------------------------------ gates */
   function placeGates() {
     /* 大门周围清出一小片可行走区域，避免到达时卡在墙里 */
     const walkBase = () => (zone === 1 ? T.URBAN : zone === 2 ? T.DIRT : T.MEADOW);
-    const g = (tx, ty, to, minLevel, label) => {
+    const g = (tx, ty, to, label) => {
       if (!inBounds(tx, ty)) return;
       const base = walkBase();
       for (let dy = -2; dy <= 2; dy++) {
@@ -336,18 +434,25 @@
           if (inBounds(nx, ny) && terrain[idx(nx, ny)] !== T.WATER) terrain[idx(nx, ny)] = base;
         }
       }
-      features.push({ type: 'gate', tx, ty, to, minLevel, label, regrowT: 0 });
+      features.push({ type: 'gate', tx, ty, to, label, regrowT: 0 });
     };
     if (zone === 0) {
-      g(Math.floor(W / 2), 4, 1, 5, '城市小区');
-      g(W - 4, Math.floor(H / 2), 2, 10, '干燥荒野');
-      g(4, Math.floor(H / 2), 3, 15, '幽暗森林');
+      g(Math.floor(W / 2), 4, 1, '城市小区');
+      g(W - 4, Math.floor(H / 2), 2, '干燥荒野');
+      g(4, Math.floor(H / 2), 3, '幽暗森林');
+      /* 右下角：巨野猪守护通往城市的传送门 */
+      g(150, 150, 1, '城市小区');
     } else if (zone === 1) {
-      g(4, CITY.MID, 0, 1, '荒野草原');   /* 城市西端出口 */
+      g(4, CITY.MID, 0, '荒野草原');   /* 城市西端出口 */
+      /* 东端：弹弓顽童守护通往干燥荒野的传送门 */
+      g(161, CITY.MID, 2, '干燥荒野');
     } else if (zone === 2) {
-      g(4, Math.floor(H / 2), 0, 1, '荒野草原');
+      g(4, Math.floor(H / 2), 0, '荒野草原');
+      g(8, Math.floor(H / 2), 1, '城市小区');       /* 西侧返回城市 */
+      g(150, 150, 3, '幽暗森林');                   /* 右下角：巨狼守护通往森林的传送门 */
     } else if (zone === 3) {
-      g(W - 4, Math.floor(H / 2), 0, 1, '荒野草原');
+      g(83, 5, 2, '干燥荒野');                      /* 长路北端：返回干燥荒野 */
+      g(160, 150, 0, '荒野草原');                   /* 右下角：巨蛇守护回荒野的传送门 */
     }
   }
 

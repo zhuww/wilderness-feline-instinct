@@ -5,3 +5,7 @@ server.err.log
 
 # node
 node_modules/
+
+# AgentTeams runtime dirs
+.agent-teams/
+_*.js
