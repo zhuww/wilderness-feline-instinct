@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>荒野本能：暹罗猫求生</title>
+<title data-i18n="misc.title">荒野本能：暹罗猫求生</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   /* ---- fallback / core styles (keep the UI usable even offline) ---- */
@@ -65,7 +65,7 @@
 <!-- Boss 血条 -->
 <div id="boss-bar" class="hidden fixed top-16 left-1/2 z-20 pointer-events-none" style="transform:translateX(-50%)">
   <div class="hud-panel px-5 py-2 rounded-2xl min-w-[300px] border-rose-500/40">
-    <div id="boss-name" class="text-[13px] font-bold text-rose-300 text-center tracking-wide">👹 Boss</div>
+    <div id="boss-name" class="text-[13px] font-bold text-rose-300 text-center tracking-wide" data-i18n="ui.hud.bossDefault">👹 Boss</div>
     <div class="h-2.5 rounded-full bg-black/50 mt-1.5 overflow-hidden border border-white/10"><div id="boss-fill" class="h-full rounded-full" style="width:100%;background:linear-gradient(90deg,#f87171,#dc2626)"></div></div>
   </div>
 </div>
@@ -81,39 +81,39 @@
     <div class="w-px h-9 bg-white/15"></div>
     <div class="flex flex-col items-center">
       <canvas id="compass" width="76" height="76" style="width:46px;height:46px"></canvas>
-      <span class="text-[8px] uppercase tracking-[0.2em] text-white/50 mt-0.5">本能</span>
+      <span class="text-[8px] uppercase tracking-[0.2em] text-white/50 mt-0.5" data-i18n="ui.hud.compass">本能</span>
     </div>
   </div>
 
   <div class="hud-panel flex-1 max-w-2xl px-3 py-2 rounded-2xl grid grid-cols-5 gap-x-3 gap-y-1">
     <div>
       <div class="meter"><span class="meter-icon">❤️</span><div class="meter-track"><span id="m-hp" class="meter-fill" style="background:linear-gradient(90deg,#fb7185,#ef4444)"></span></div></div>
-      <div class="meter-label">生命</div>
+      <div class="meter-label" data-i18n="ui.meter.hp">生命</div>
     </div>
     <div>
       <div class="meter"><span class="meter-icon">🍖</span><div class="meter-track"><span id="m-sat" class="meter-fill" style="background:linear-gradient(90deg,#fbbf24,#f59e0b)"></span></div></div>
-      <div class="meter-label">饱食度</div>
+      <div class="meter-label" data-i18n="ui.meter.satiety">饱食度</div>
     </div>
     <div>
       <div class="meter"><span class="meter-icon">💧</span><div class="meter-track"><span id="m-thirst" class="meter-fill" style="background:linear-gradient(90deg,#38bdf8,#0ea5e9)"></span></div></div>
-      <div class="meter-label">水分</div>
+      <div class="meter-label" data-i18n="ui.meter.hydration">水分</div>
     </div>
     <div>
       <div class="meter"><span class="meter-icon">⚡</span><div class="meter-track"><span id="m-stam" class="meter-fill" style="background:linear-gradient(90deg,#a3e635,#84cc16)"></span></div></div>
-      <div class="meter-label">体力</div>
+      <div class="meter-label" data-i18n="ui.meter.stamina">体力</div>
     </div>
     <div>
       <div class="meter"><span class="meter-icon">🧠</span><div class="meter-track"><span id="m-mood" class="meter-fill" style="background:linear-gradient(90deg,#e879f9,#c026d3)"></span></div></div>
-      <div class="meter-label">心情</div>
+      <div class="meter-label" data-i18n="ui.meter.mood">心情</div>
     </div>
     <div id="wet-meter" class="col-span-5 -mt-0.5" style="opacity:0.4">
       <div class="meter"><span class="meter-icon">🌧️</span><div class="meter-track" style="height:5px"><span id="m-wet" class="meter-fill" style="background:linear-gradient(90deg,#67e8f9,#22d3ee)"></span></div></div>
-      <div class="meter-label">毛发湿润度</div>
+      <div class="meter-label" data-i18n="ui.meter.wetness">毛发湿润度</div>
     </div>
     <div class="col-span-5 flex items-center gap-2 -mt-0.5">
       <span id="level-label" class="text-[10px] font-bold text-amber-200 w-14 shrink-0">Lv 1</span>
       <div class="flex-1 h-1.5 rounded-full bg-black/40 border border-white/10 overflow-hidden"><span id="m-xp" class="block h-full rounded-full" style="background:linear-gradient(90deg,#fbbf24,#f59e0b);width:0%"></span></div>
-      <span class="text-[9px] text-white/40 tracking-widest shrink-0">经验</span>
+      <span class="text-[9px] text-white/40 tracking-widest shrink-0" data-i18n="ui.hud.xp">经验</span>
     </div>
     <div class="col-span-5 -mt-1">
       <span id="summon-chip" class="inline-block text-[10px] font-semibold text-orange-300 bg-black/30 border border-orange-400/30 px-2 py-0.5 rounded-full">📣 无伙伴猫</span>
@@ -121,12 +121,13 @@
   </div>
 
   <div class="flex flex-row items-center gap-1.5 pointer-events-auto">
-    <button id="btn-growth" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-amber-500/30 transition" title="成长与技能">📈</button>
-    <button id="btn-guide" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="生存指南 (G)">📖</button>
-    <button id="btn-inv" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition relative" title="背包 (I)">🎒<span id="inv-badge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 items-center justify-center rounded-full bg-amber-500 text-black text-[10px] font-bold"></span></button>
-    <button id="btn-friends" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="猫朋友 (B)">🐈</button>
-    <button id="btn-sound" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="开关音效">🔊</button>
-    <button id="btn-reset" class="hud-panel w-9 h-9 rounded-xl text-[13px] hover:bg-rose-500/30 transition" title="开始新游戏">↻</button>
+    <button id="btn-growth" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-amber-500/30 transition" title="成长与技能" data-i18n-title="ui.btn.growth">📈</button>
+    <button id="btn-guide" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="生存指南 (G)" data-i18n-title="ui.btn.guide">📖</button>
+    <button id="btn-inv" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition relative" title="背包 (I)" data-i18n-title="ui.btn.inv">🎒<span id="inv-badge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 items-center justify-center rounded-full bg-amber-500 text-black text-[10px] font-bold"></span></button>
+    <button id="btn-friends" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="猫朋友 (B)" data-i18n-title="ui.btn.friends">🐈</button>
+    <button id="btn-sound" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="开关音效" data-i18n-title="ui.btn.sound">🔊</button>
+    <button id="btn-reset" class="hud-panel w-9 h-9 rounded-xl text-[13px] hover:bg-rose-500/30 transition" title="开始新游戏" data-i18n-title="ui.btn.reset">🆕</button>
+    <button id="btn-lang" class="hud-panel h-9 rounded-xl px-2 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/30 transition" title="语言 / Language">🌐 中文</button>
   </div>
 </div>
 
@@ -135,7 +136,7 @@
 
 <!-- 桌面按键提示 -->
 <div id="hint-bar" class="hidden sm:block fixed bottom-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-  <div class="hud-panel px-4 py-1.5 rounded-full text-[11px] text-slate-300 tracking-wide whitespace-nowrap">
+  <div class="hud-panel px-4 py-1.5 rounded-full text-[11px] text-slate-300 tracking-wide whitespace-nowrap" data-i18n-html="ui.hint">
     <b class="text-white">WASD</b> 移动 · <b class="text-white">Shift</b> 潜行 · <b class="text-white">空格</b> 扑击 · <b class="text-white">E</b> 嗅探 · <b class="text-white">Q</b> 梳理 · <b class="text-white">F</b> 互动
   </div>
 </div>
@@ -146,22 +147,22 @@
     <div id="joystick-knob" class="absolute left-1/2 top-1/2 -ml-6 -mt-6 w-12 h-12 rounded-full bg-white/30 border border-white/40" style="transition:transform .04s linear"></div>
   </div>
   <div class="absolute right-4 bottom-7 grid grid-cols-2 gap-2 pointer-events-auto">
-    <button id="btn-pounce" class="act-btn" title="扑击">⚔️</button>
-    <button id="btn-sniff" class="act-btn" title="嗅探">👃</button>
-    <button id="btn-groom" class="act-btn" title="梳理">✨</button>
-    <button id="btn-interact" class="act-btn" title="互动">🤝</button>
-    <button id="btn-sneak" class="act-btn col-span-2 justify-center" title="切换潜行">🦎 潜行</button>
-    <button id="btn-summon" class="act-btn col-span-2 justify-center !w-auto !h-9" title="召唤伙伴猫（R）">📣 召唤伙伴</button>
+    <button id="btn-pounce" class="act-btn" title="扑击" data-i18n-title="ui.touch.pounce">⚔️</button>
+    <button id="btn-sniff" class="act-btn" title="嗅探" data-i18n-title="ui.touch.sniff">👃</button>
+    <button id="btn-groom" class="act-btn" title="梳理" data-i18n-title="ui.touch.groom">✨</button>
+    <button id="btn-interact" class="act-btn" title="互动" data-i18n-title="ui.touch.interact">🤝</button>
+    <button id="btn-sneak" class="act-btn col-span-2 justify-center" title="切换潜行" data-i18n-title="ui.touch.sneakTitle" data-i18n="ui.touch.sneak">🦎 潜行</button>
+    <button id="btn-summon" class="act-btn col-span-2 justify-center !w-auto !h-9" title="召唤伙伴猫（R）" data-i18n-title="ui.touch.summonTitle" data-i18n="ui.touch.summon">📣 召唤伙伴</button>
   </div>
 </div>
 
 <!-- ===================== 猫互动菜单（漂浮在猫头顶） ===================== -->
 <div id="cat-menu" class="hidden fixed z-30 pointer-events-auto flex-col items-center gap-1 bg-black/60 border border-white/15 rounded-2xl px-2 py-1.5 backdrop-blur-md shadow-xl" style="transform:translateX(-50%)">
-  <div class="text-[10px] text-pink-200 px-1 pb-0.5 font-semibold tracking-wide">猫的互动</div>
+  <div class="text-[10px] text-pink-200 px-1 pb-0.5 font-semibold tracking-wide" data-i18n="ui.catmenu.title">猫的互动</div>
   <div class="flex gap-1">
-    <button data-action="pet" class="cat-btn">🐾 抚摸</button>
-    <button data-action="feed" class="cat-btn">🍖 喂食</button>
-    <button data-action="adopt" class="cat-btn">🤝 收养</button>
+    <button data-action="pet" class="cat-btn" data-i18n="ui.catmenu.pet">🐾 抚摸</button>
+    <button data-action="feed" class="cat-btn" data-i18n="ui.catmenu.feed">🍖 喂食</button>
+    <button data-action="adopt" class="cat-btn" data-i18n="ui.catmenu.adopt">🤝 收养</button>
   </div>
 </div>
 
@@ -169,12 +170,12 @@
 <div id="modal-inv" class="hidden fixed inset-0 z-30 items-center justify-center bg-black/60 backdrop-blur-sm p-3">
   <div class="modal-panel w-full max-w-lg max-h-[86vh] rounded-3xl flex flex-col overflow-hidden">
     <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2">🎒 背包 &amp; 合成</h2>
+      <h2 class="text-lg font-bold text-white flex items-center gap-2" data-i18n="ui.modal.inv.title">🎒 背包 &amp; 合成</h2>
       <button class="modal-close w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition">✕</button>
     </div>
     <div class="flex gap-2 px-5 pt-3 shrink-0">
-      <button id="tab-inv" class="tab tab-on">行囊</button>
-      <button id="tab-craft" class="tab">合成</button>
+      <button id="tab-inv" class="tab tab-on" data-i18n="ui.tab.inv">行囊</button>
+      <button id="tab-craft" class="tab" data-i18n="ui.tab.craft">合成</button>
     </div>
     <div id="panel-inv" class="overflow-y-auto p-4 space-y-2 flex-1"><div id="inv-list"></div></div>
     <div id="panel-craft" class="overflow-y-auto p-4 space-y-2 flex-1 hidden"><div id="craft-list"></div></div>
@@ -185,10 +186,10 @@
 <div id="modal-friends" class="hidden fixed inset-0 z-30 items-center justify-center bg-black/60 backdrop-blur-sm p-3">
   <div class="modal-panel w-full max-w-lg max-h-[86vh] rounded-3xl flex flex-col overflow-hidden">
     <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2">🐈 猫朋友</h2>
+      <h2 class="text-lg font-bold text-white flex items-center gap-2" data-i18n="ui.modal.friends.title">🐈 猫朋友</h2>
       <button class="modal-close w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition">✕</button>
     </div>
-    <div class="px-5 pt-3 text-[11px] text-slate-400 shrink-0">走近流浪猫按 <b class="text-slate-200">F</b> 抚摸它——猫头顶会弹出操作菜单，可以 <b class="text-slate-200">喂食</b>（三文鱼/老鼠）并 <b class="text-slate-200">收养</b>（亲密度达到 <b class="text-pink-300">60 ♥</b>）。粉色气味标记猫的位置。</div>
+    <div class="px-5 pt-3 text-[11px] text-slate-400 shrink-0" data-i18n-html="ui.friends.intro">走近流浪猫按 <b class="text-slate-200">F</b> 抚摸它——猫头顶会弹出操作菜单，可以 <b class="text-slate-200">喂食</b>（三文鱼/老鼠）并 <b class="text-slate-200">收养</b>（亲密度达到 <b class="text-pink-300">60 ♥</b>）。粉色气味标记猫的位置。</div>
     <div id="friends-list" class="overflow-y-auto p-4 space-y-2 flex-1"></div>
   </div>
 </div>
@@ -197,86 +198,86 @@
 <div id="modal-guide" class="hidden fixed inset-0 z-30 items-center justify-center bg-black/60 backdrop-blur-sm p-3">
   <div class="modal-panel w-full max-w-lg max-h-[86vh] rounded-3xl flex flex-col overflow-hidden">
     <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2">📖 生存指南</h2>
+      <h2 class="text-lg font-bold text-white flex items-center gap-2" data-i18n="ui.modal.guide.title">📖 生存指南</h2>
       <button class="modal-close w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition">✕</button>
     </div>
     <div id="guide-body" class="overflow-y-auto p-5 space-y-4 flex-1 text-[12.5px] text-slate-300 leading-relaxed">
       <div>
-        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">🎮 操作</h3>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5" data-i18n="guide.controls.title">🎮 操作</h3>
         <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-400">
-          <span><b class="text-slate-200">WASD / 方向键</b> — 移动</span>
-          <span><b class="text-slate-200">Shift</b> — 潜行（藏进高草丛）</span>
-          <span><b class="text-slate-200">空格</b> — 扑击 / 攻击</span>
-          <span><b class="text-slate-200">E</b> — 嗅探（气味流）</span>
-          <span><b class="text-slate-200">Q</b> — 梳理毛发（+心情）</span>
-          <span><b class="text-slate-200">F</b> — 互动 / 抚摸 / 钓鱼</span>
-          <span><b class="text-slate-200">R</b> — 召唤伙伴猫作战（5 分钟冷却）</span>
-          <span><b class="text-slate-200">I / B / G</b> — 打开面板</span>
-          <span><b class="text-slate-200">Esc</b> — 关闭面板</span>
+          <span data-i18n-html="guide.controls.move"><b class="text-slate-200">WASD / 方向键</b> — 移动</span>
+          <span data-i18n-html="guide.controls.sneak"><b class="text-slate-200">Shift</b> — 潜行（藏进高草丛）</span>
+          <span data-i18n-html="guide.controls.pounce"><b class="text-slate-200">空格</b> — 扑击 / 攻击</span>
+          <span data-i18n-html="guide.controls.sniff"><b class="text-slate-200">E</b> — 嗅探（气味流）</span>
+          <span data-i18n-html="guide.controls.groom"><b class="text-slate-200">Q</b> — 梳理毛发（+心情）</span>
+          <span data-i18n-html="guide.controls.interact"><b class="text-slate-200">F</b> — 互动 / 抚摸 / 钓鱼</span>
+          <span data-i18n-html="guide.controls.summon"><b class="text-slate-200">R</b> — 召唤伙伴猫作战（5 分钟冷却）</span>
+          <span data-i18n-html="guide.controls.panels"><b class="text-slate-200">I / B / G</b> — 打开面板</span>
+          <span data-i18n-html="guide.controls.close"><b class="text-slate-200">Esc</b> — 关闭面板</span>
         </div>
       </div>
       <div>
-        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">👃 嗅觉本能</h3>
-        <p>按下 <b class="text-slate-200">E</b>，彩色气味流会随风告诉你周围有什么：</p>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5" data-i18n="guide.smell.title">👃 嗅觉本能</h3>
+        <p data-i18n-html="guide.smell.p1">按下 <b class="text-slate-200">E</b>，彩色气味流会随风告诉你周围有什么：</p>
         <div class="mt-1.5 space-y-1">
-          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#3ee6ff"></span><b class="text-cyan-300">青色</b> — 干净的水源泉水</div>
-          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ffd75e"></span><b class="text-amber-300">金色</b> — 猎物：老鼠、三文鱼、蚱蜢</div>
-          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ff9ad5"></span><b class="text-pink-300">粉色</b> — 友好的流浪猫</div>
-          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ff4d4d"></span><b class="text-rose-400">红色</b> — 捕食者：野猪、毒蛇、狐狸</div>
-          <div><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ff8a3d"></span><b class="text-orange-400">橙色</b> — 入侵领地的对手猫</div>
+          <div data-i18n-html="guide.smell.cyan"><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#3ee6ff"></span><b class="text-cyan-300">青色</b> — 干净的水源泉水</div>
+          <div data-i18n-html="guide.smell.gold"><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ffd75e"></span><b class="text-amber-300">金色</b> — 猎物：老鼠、三文鱼、蚱蜢</div>
+          <div data-i18n-html="guide.smell.pink"><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ff9ad5"></span><b class="text-pink-300">粉色</b> — 友好的流浪猫</div>
+          <div data-i18n-html="guide.smell.red"><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ff4d4d"></span><b class="text-rose-400">红色</b> — 捕食者：野猪、毒蛇、狐狸</div>
+          <div data-i18n-html="guide.smell.orange"><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" style="background:#ff8a3d"></span><b class="text-orange-400">橙色</b> — 入侵领地的对手猫</div>
         </div>
-        <p class="mt-1.5 text-slate-400">顶部<b class="text-slate-200">「本能」罗盘</b>始终指向最近的各种气味来源。</p>
+        <p class="mt-1.5 text-slate-400" data-i18n-html="guide.smell.p2">顶部<b class="text-slate-200">「本能」罗盘</b>始终指向最近的各种气味来源。</p>
       </div>
       <div>
-        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">🐾 生存小贴士</h3>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5" data-i18n="guide.tips.title">🐾 生存小贴士</h3>
         <ul class="list-disc list-inside space-y-1 text-slate-400">
-          <li>在<b class="text-slate-200">泉水</b>（青色）喝水，在河岸按 <b class="text-slate-200">F</b> 钓鱼。</li>
-          <li>下雨会打湿毛发——<b class="text-slate-200">湿毛</b>会拖慢体力回复。合成<b class="text-slate-200">树叶雨帽</b>或在洞穴火堆旁烘干。</li>
-          <li>潜行穿过<b class="text-slate-200">高草丛</b>避开捕食者，再扑击致命一击。</li>
-          <li>洞穴是安全庇护所：在床上睡到天亮恢复生命，在火堆旁烤三文鱼。</li>
-          <li>按 <b class="text-slate-200">Q</b> 梳理毛发提升心情；心情过低会持续削弱你。</li>
-          <li>交好流浪猫（粉色）——亲密度高了它们会预警危险、并肩作战。</li>
-          <li>猫薄荷是很强的提神草药……但会引发"疯狂跑酷"。慎用。</li>
+          <li data-i18n-html="guide.tips.1">在<b class="text-slate-200">泉水</b>（青色）喝水，在河岸按 <b class="text-slate-200">F</b> 钓鱼。</li>
+          <li data-i18n-html="guide.tips.2">下雨会打湿毛发——<b class="text-slate-200">湿毛</b>会拖慢体力回复。合成<b class="text-slate-200">树叶雨帽</b>或在洞穴火堆旁烘干。</li>
+          <li data-i18n-html="guide.tips.3">潜行穿过<b class="text-slate-200">高草丛</b>避开捕食者，再扑击致命一击。</li>
+          <li data-i18n-html="guide.tips.4">洞穴是安全庇护所：在床上睡到天亮恢复生命，在火堆旁烤三文鱼。</li>
+          <li data-i18n-html="guide.tips.5">按 <b class="text-slate-200">Q</b> 梳理毛发提升心情；心情过低会持续削弱你。</li>
+          <li data-i18n-html="guide.tips.6">交好流浪猫（粉色）——亲密度高了它们会预警危险、并肩作战。</li>
+          <li data-i18n-html="guide.tips.7">猫薄荷是很强的提神草药……但会引发"疯狂跑酷"。慎用。</li>
         </ul>
       </div>
       <div>
-        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">🔨 合成配方</h3>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5" data-i18n="guide.recipes.title">🔨 合成配方</h3>
         <ul class="list-disc list-inside space-y-1 text-slate-400">
-          <li><b class="text-slate-200">树叶雨帽</b> — 树叶 ×3 + 藤蔓 ×2（防御：受伤 -2）</li>
-          <li><b class="text-slate-200">鱼骨项圈</b> — 鱼骨 ×3 + 筋腱 ×1（攻击 +3，友情获取 +50%）</li>
-          <li><b class="text-slate-200">猫牙项链</b> — 鱼骨 ×4 + 筋腱 ×2（攻击 +20%）</li>
-          <li><b class="text-slate-200">干猫薄荷</b> — 猫薄荷 ×2（需要白天）</li>
-          <li><b class="text-slate-200">草药膏</b> — 草药 ×3 + 野猪油 ×1</li>
-          <li><b class="text-slate-200">猫薄荷茶</b> — 猫薄荷 ×1 + 草药 ×1（体力 +25，瞬间恢复）</li>
-          <li><b class="text-slate-200">活力药剂</b> — 猫薄荷 ×2 + 草药 ×2 + 野猪油 ×1（体力 +55，需【草药炼金】技能）</li>
-          <li><b class="text-slate-200">火焰红宝石吊坠</b> — 红宝石 ×1 + 鱼骨 ×2 + 筋腱 ×1（攻击 +40%）</li>
-          <li><b class="text-slate-200">蓝宝石星坠</b> — 蓝宝石 ×1 + 鱼骨 ×2 + 筋腱 ×1（攻击 +25%、暴击 +12%）</li>
-          <li><b class="text-slate-200">翡翠护身符</b> — 翡翠 ×1 + 树叶 ×2 + 藤蔓 ×2（每次受伤 -6）</li>
-          <li><b class="text-slate-200">藤甲</b> — 藤条 ×3 + 树叶 ×2 + 藤蔓 ×2（受伤 -7、雨中几乎不湿身）</li>
-          <li><b class="text-slate-200">石爪</b> — 红宝石 ×1 + 筋腱 ×2 + 鱼骨 ×2（攻击 +8，显著提升伤害）</li>
-          <li><b class="text-slate-200">龙血药剂</b> — 龙血草 ×2 + 草药 ×1 + 野猪油 ×1（回 60 生命，需【草药炼金】）</li>
+          <li data-i18n-html="guide.recipes.1"><b class="text-slate-200">树叶雨帽</b> — 树叶 ×3 + 藤蔓 ×2（防御：受伤 -2）</li>
+          <li data-i18n-html="guide.recipes.2"><b class="text-slate-200">鱼骨项圈</b> — 鱼骨 ×3 + 筋腱 ×1（攻击 +3，友情获取 +50%）</li>
+          <li data-i18n-html="guide.recipes.3"><b class="text-slate-200">猫牙项链</b> — 鱼骨 ×4 + 筋腱 ×2（攻击 +20%）</li>
+          <li data-i18n-html="guide.recipes.4"><b class="text-slate-200">干猫薄荷</b> — 猫薄荷 ×2（需要白天）</li>
+          <li data-i18n-html="guide.recipes.5"><b class="text-slate-200">草药膏</b> — 草药 ×3 + 野猪油 ×1</li>
+          <li data-i18n-html="guide.recipes.6"><b class="text-slate-200">猫薄荷茶</b> — 猫薄荷 ×1 + 草药 ×1（体力 +25，瞬间恢复）</li>
+          <li data-i18n-html="guide.recipes.7"><b class="text-slate-200">活力药剂</b> — 猫薄荷 ×2 + 草药 ×2 + 野猪油 ×1（体力 +55，需【草药炼金】技能）</li>
+          <li data-i18n-html="guide.recipes.8"><b class="text-slate-200">火焰红宝石吊坠</b> — 红宝石 ×1 + 鱼骨 ×2 + 筋腱 ×1（攻击 +40%）</li>
+          <li data-i18n-html="guide.recipes.9"><b class="text-slate-200">蓝宝石星坠</b> — 蓝宝石 ×1 + 鱼骨 ×2 + 筋腱 ×1（攻击 +25%、暴击 +12%）</li>
+          <li data-i18n-html="guide.recipes.10"><b class="text-slate-200">翡翠护身符</b> — 翡翠 ×1 + 树叶 ×2 + 藤蔓 ×2（每次受伤 -6）</li>
+          <li data-i18n-html="guide.recipes.11"><b class="text-slate-200">藤甲</b> — 藤条 ×3 + 树叶 ×2 + 藤蔓 ×2（受伤 -7、雨中几乎不湿身）</li>
+          <li data-i18n-html="guide.recipes.12"><b class="text-slate-200">石爪</b> — 红宝石 ×1 + 筋腱 ×2 + 鱼骨 ×2（攻击 +8，显著提升伤害）</li>
+          <li data-i18n-html="guide.recipes.13"><b class="text-slate-200">龙血药剂</b> — 龙血草 ×2 + 草药 ×1 + 野猪油 ×1（回 60 生命，需【草药炼金】）</li>
         </ul>
       </div>
       <div>
-        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">📈 成长与技能</h3>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5" data-i18n="guide.growth.title">📈 成长与技能</h3>
         <ul class="list-disc list-inside space-y-1 text-slate-400">
-          <li>每个行为都会获得<b class="text-slate-200">经验</b>——捕猎、钓鱼、采集、宠物、挑战、击败 Boss。每升 1 级<b class="text-emerald-300">永久</b>增加最大生命 +10、最大体力 +6、最大心情 +6，体力恢复速度也随等级加快。</li>
-          <li>升级、挑战胜利、击败 Boss 都会获得<b class="text-slate-200">经验</b>；但<b class="text-amber-300">技能点只在升级时获得</b>（每级 +1），务必谨慎规划。在 📈 成长面板里自由点亮<b class="text-slate-200">五大分支</b>：🎯狩猎、🛡️生存、🐈羁绊、💨闪避、🔨制作。</li>
-          <li><b class="text-slate-200">猎手本能</b>（伤害）、<b class="text-slate-200">飞扑袭杀</b>（扑击距离）、<b class="text-slate-200">厚实毛皮</b>（减伤）、<b class="text-slate-200">活力充盈</b>（体力恢复）、<b class="text-slate-200">灵动闪避</b>（闪避率）、<b class="text-slate-200">能工巧匠</b>（制作效果）都可以<b class="text-amber-300">重复加点</b>，成长潜力巨大。</li>
-          <li><b class="text-slate-200">草药炼金</b>解锁<b class="text-slate-200">活力药剂</b>；<b class="text-slate-200">猫薄荷茶</b>也是瞬间恢复体力的好帮手——体力见底时别忘了喝一口。</li>
-          <li>⚖️ <b class="text-amber-300">动态难度</b>：怪物、Boss 与挑战的强度会随你的等级<b class="text-slate-200">同步成长</b>（荒野草原 &lt; 城市小区 &lt; 干燥荒野 &lt; 幽暗森林，场景越深基础越强）——等级再高也不能掉以轻心，挑战与奖励都随之提升。</li>
-          <li>🐾 <b class="text-amber-300">成长节奏</b>：怪物密度随等级提升（每 5 级 +30%），场景内怪物会<b class="text-slate-200">缓慢补刷</b>，升级所需经验曲线更平缓——深入更高级的场景刷怪升级更快，不必死守一个区域。</li>
+          <li data-i18n-html="guide.growth.1">每个行为都会获得<b class="text-slate-200">经验</b>——捕猎、钓鱼、采集、宠物、挑战、击败 Boss。每升 1 级<b class="text-emerald-300">永久</b>增加最大生命 +10、最大体力 +6、最大心情 +6，体力恢复速度也随等级加快。</li>
+          <li data-i18n-html="guide.growth.2">升级、挑战胜利、击败 Boss 都会获得<b class="text-slate-200">经验</b>；但<b class="text-amber-300">技能点只在升级时获得</b>（每级 +1），务必谨慎规划。在 📈 成长面板里自由点亮<b class="text-slate-200">五大分支</b>：🎯狩猎、🛡️生存、🐈羁绊、💨闪避、🔨制作。</li>
+          <li data-i18n-html="guide.growth.3"><b class="text-slate-200">猎手本能</b>（伤害）、<b class="text-slate-200">飞扑袭杀</b>（扑击距离）、<b class="text-slate-200">厚实毛皮</b>（减伤）、<b class="text-slate-200">活力充盈</b>（体力恢复）、<b class="text-slate-200">灵动闪避</b>（闪避率）、<b class="text-slate-200">能工巧匠</b>（制作效果）都可以<b class="text-amber-300">重复加点</b>，成长潜力巨大。</li>
+          <li data-i18n-html="guide.growth.4"><b class="text-slate-200">草药炼金</b>解锁<b class="text-slate-200">活力药剂</b>；<b class="text-slate-200">猫薄荷茶</b>也是瞬间恢复体力的好帮手——体力见底时别忘了喝一口。</li>
+          <li data-i18n-html="guide.growth.5">⚖️ <b class="text-amber-300">动态难度</b>：怪物、Boss 与挑战的强度会随你的等级<b class="text-slate-200">同步成长</b>（荒野草原 &lt; 城市小区 &lt; 干燥荒野 &lt; 幽暗森林，场景越深基础越强）——等级再高也不能掉以轻心，挑战与奖励都随之提升。</li>
+          <li data-i18n-html="guide.growth.6">🐾 <b class="text-amber-300">成长节奏</b>：怪物密度随等级提升（每 5 级 +30%），场景内怪物会<b class="text-slate-200">缓慢补刷</b>，升级所需经验曲线更平缓——深入更高级的场景刷怪升级更快，不必死守一个区域。</li>
         </ul>
       </div>
       <div>
-        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5">⛩ 区域与 Boss</h3>
+        <h3 class="text-[13px] font-bold text-amber-300 mb-1.5" data-i18n="guide.zones.title">⛩ 区域与 Boss</h3>
         <ul class="list-disc list-inside space-y-1 text-slate-400">
-          <li>地图边缘的<b class="text-slate-200">传送门</b>通往新区域：<b class="text-slate-200">城市小区</b>、<b class="text-slate-200">干燥荒野</b>、<b class="text-slate-200">幽暗森林</b>——<b class="text-emerald-300">无等级限制</b>，随时可以自由进出往返。</li>
-          <li>每个区域<b class="text-slate-200">右下角</b>都盘踞着<b class="text-slate-200">关底 Boss</b>：巨野猪（冲撞）、弹弓顽童（远程石子）、巨狼（极速撕咬）、<b class="text-rose-300">大眼镜蛇</b>——最终 Boss，体型巨大，会<b class="text-rose-300">喷射毒液</b>（击中后持续中毒掉血）与<b class="text-rose-300">远距离扑击</b>（扑击前会高高支起身体）。它守护着<b class="text-amber-300">通往下一场景的传送门</b>——想要推进主线，就得先过 Boss 这一关。击败它们奖励大量经验（技能点仍只来自升级）。</li>
-          <li>🌋 <b class="text-slate-200">干燥荒野</b>有大型<b class="text-slate-200">火山口</b>（熔岩不可通行）和<b class="text-slate-200">宝石矿脉</b>；<b class="text-rose-300">泉水稀少、几乎不下雨</b>——靠<b class="text-slate-200">仙人掌果</b>补水，采<b class="text-slate-200">龙血草</b>和宝石制作强效道具。</li>
-          <li>🌲 <b class="text-slate-200">幽暗森林</b>是一条纵贯的<b class="text-slate-200">长路</b>，两侧是无法通行的高大树木林，<b class="text-sky-300">多雨</b>——采集<b class="text-slate-200">藤条</b>编<b class="text-slate-200">藤甲</b>防雨防身，路上还有凶猛的<b class="text-rose-300">猴子</b>、<b class="text-rose-300">鳄鱼</b>和<b class="text-slate-200">灵芝</b>。</li>
-          <li>🛏 城市小区的<b class="text-slate-200">狭窄暗巷</b>和幽暗森林的<b class="text-slate-200">树洞</b>都是可以睡觉的避难所——睡到天亮恢复 40 生命、体力全满。</li>
-          <li>Boss 靠近时屏幕上方会出现血条；扑击是主要输出手段。</li>
+          <li data-i18n-html="guide.zones.1">地图边缘的<b class="text-slate-200">传送门</b>通往新区域：<b class="text-slate-200">城市小区</b>、<b class="text-slate-200">干燥荒野</b>、<b class="text-slate-200">幽暗森林</b>——<b class="text-emerald-300">无等级限制</b>，随时可以自由进出往返。</li>
+          <li data-i18n-html="guide.zones.2">每个区域<b class="text-slate-200">右下角</b>都盘踞着<b class="text-slate-200">关底 Boss</b>：巨野猪（冲撞）、弹弓顽童（远程石子）、巨狼（极速撕咬）、<b class="text-rose-300">大眼镜蛇</b>——最终 Boss，体型巨大，会<b class="text-rose-300">喷射毒液</b>（击中后持续中毒掉血）与<b class="text-rose-300">远距离扑击</b>（扑击前会高高支起身体）。它守护着<b class="text-amber-300">通往下一场景的传送门</b>——想要推进主线，就得先过 Boss 这一关。击败它们奖励大量经验（技能点仍只来自升级）。</li>
+          <li data-i18n-html="guide.zones.3">🌋 <b class="text-slate-200">干燥荒野</b>有大型<b class="text-slate-200">火山口</b>（熔岩不可通行）和<b class="text-slate-200">宝石矿脉</b>；<b class="text-rose-300">泉水稀少、几乎不下雨</b>——靠<b class="text-slate-200">仙人掌果</b>补水，采<b class="text-slate-200">龙血草</b>和宝石制作强效道具。</li>
+          <li data-i18n-html="guide.zones.4">🌲 <b class="text-slate-200">幽暗森林</b>是一条纵贯的<b class="text-slate-200">长路</b>，两侧是无法通行的高大树木林，<b class="text-sky-300">多雨</b>——采集<b class="text-slate-200">藤条</b>编<b class="text-slate-200">藤甲</b>防雨防身，路上还有凶猛的<b class="text-rose-300">猴子</b>、<b class="text-rose-300">鳄鱼</b>和<b class="text-slate-200">灵芝</b>。</li>
+          <li data-i18n-html="guide.zones.5">🛏 城市小区的<b class="text-slate-200">狭窄暗巷</b>和幽暗森林的<b class="text-slate-200">树洞</b>都是可以睡觉的避难所——睡到天亮恢复 40 生命、体力全满。</li>
+          <li data-i18n-html="guide.zones.6">Boss 靠近时屏幕上方会出现血条；扑击是主要输出手段。</li>
         </ul>
       </div>
     </div>
@@ -287,14 +288,40 @@
 <div id="modal-growth" class="hidden fixed inset-0 z-30 items-center justify-center bg-black/60 backdrop-blur-sm p-3">
   <div class="modal-panel w-full max-w-lg max-h-[86vh] rounded-3xl flex flex-col overflow-hidden">
     <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2">📈 成长与技能</h2>
+      <h2 class="text-lg font-bold text-white flex items-center gap-2" data-i18n="ui.modal.growth.title">📈 成长与技能</h2>
       <button class="modal-close w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition">✕</button>
     </div>
     <div id="growth-list" class="overflow-y-auto p-4 flex-1"></div>
   </div>
 </div>
 
+<!-- 新游戏确认面板 -->
+<div id="modal-confirm" class="hidden fixed inset-0 z-40 items-center justify-center bg-black/60 backdrop-blur-sm p-3">
+  <div class="modal-panel w-full max-w-sm rounded-3xl flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <h2 class="text-lg font-bold text-rose-300 flex items-center gap-2" data-i18n="ui.confirm.resetTitle">🆕 开始新游戏</h2>
+      <button class="modal-close w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition">✕</button>
+    </div>
+    <div class="p-5">
+      <p class="text-[13px] leading-relaxed text-slate-300" data-i18n="ui.confirm.resetDesc">将清空当前所有进度（等级、技能、物品、伙伴、区域进度），并生成一个全新的世界。此操作不可撤销！</p>
+      <div class="flex gap-3 mt-5">
+        <button id="confirm-reset-yes" class="flex-1 py-2.5 rounded-xl text-[13px] font-bold bg-rose-500/90 hover:bg-rose-400 text-white transition" data-i18n="ui.confirm.ok">🎮 新游戏</button>
+        <button id="confirm-reset-no" class="flex-1 py-2.5 rounded-xl text-[13px] font-bold bg-white/10 hover:bg-white/20 text-slate-200 transition" data-i18n="ui.confirm.cancel">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="js/utils.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/lang/zh.js"></script>
+<script src="js/lang/en.js"></script>
+<script src="js/lang/fr.js"></script>
+<script src="js/lang/es.js"></script>
+<script src="js/lang/de.js"></script>
+<script src="js/lang/ja.js"></script>
+<script src="js/lang/ko.js"></script>
+<script src="js/lang/ru.js"></script>
 <script src="js/world.js"></script>
 <script src="js/particles.js"></script>
 <script src="js/entities.js"></script>

@@ -139,7 +139,7 @@
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = '8px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('北', c, c - 33);
+    ctx.fillText(Game.i18n.t('misc.north'), c, c - 33);
     /* ticks */
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * U.TAU;
@@ -267,13 +267,13 @@
     const hhS = String(hh).padStart(2, '0');
     const mmS = String(mm).padStart(2, '0');
     const icon = st.night > 0.6 ? '🌙' : st.night > 0.15 ? '🌆' : st.warm > 0.08 ? '🌅' : '☀️';
-    writeText($('time-label'), icon + ' ' + hhS + ':' + mmS + ' · Day ' + st.day);
+    writeText($('time-label'), Game.i18n.t('ui.hud.time', { icon: icon, time: hhS + ':' + mmS, day: st.day }));
     /* weather */
     const wl = $('weather-label');
     if (wl) {
-      const meta = { clear: ['☀️ 晴朗', 'text-amber-200'], rain: ['🌧️ 下雨', 'text-sky-300'], mist: ['🌫️ 薄雾', 'text-slate-300'] };
+      const meta = { clear: ['ui.hud.weather.clear', 'text-amber-200'], rain: ['ui.hud.weather.rain', 'text-sky-300'], mist: ['ui.hud.weather.mist', 'text-slate-300'] };
       const m = meta[st.weather] || meta.clear;
-      writeText(wl, m[0]);
+      writeText(wl, Game.i18n.t(m[0]));
       writeClass(wl, 'text-[11px] font-medium tracking-wide ' + m[1]);
     }
     /* meters */
@@ -294,7 +294,7 @@
     const wetEl = $('wet-meter');
     if (wetEl) writeStyle(wetEl, 'opacity', s.wetness > 3 ? '1' : '0.35');
     /* level + xp */
-    writeText($('level-label'), 'Lv ' + p.level);
+    writeText($('level-label'), Game.i18n.t('ui.hud.level', { n: p.level }));
     const xpEl = $('m-xp');
     if (xpEl) {
       const need = Game.entities.xpToLevel(p.level);
@@ -304,15 +304,16 @@
     const sc = $('summon-chip');
     if (sc) {
       const hasAdopted = Game.entities.companions.some((c) => c.adopted);
-      if (!hasAdopted) writeText(sc, '📣 无伙伴猫');
-      else if (p.summonCd > 0) writeText(sc, '📣 ' + Math.ceil(p.summonCd) + 's');
-      else writeText(sc, '📣 就绪(R)');
+      if (!hasAdopted) writeText(sc, Game.i18n.t('ui.hud.summon.none'));
+      else if (p.summonCd > 0) writeText(sc, Game.i18n.t('ui.hud.summon.cd', { n: Math.ceil(p.summonCd) }));
+      else writeText(sc, Game.i18n.t('ui.hud.summon.ready'));
     }
     /* 当前区域 */
     const zl = $('zone-label');
     if (zl && Game.world.ZONE_INFO) {
-      const zi = Game.world.ZONE_INFO[Game.state.zone];
-      writeText(zl, '⛩ ' + (zi ? zi.name : '荒野草原'));
+      /* 区域名走字典（zone.0-3），缺失时 t() 自动回退中文基准 */
+      const zoneKey = 'zone.' + Game.state.zone;
+      writeText(zl, Game.i18n.t('ui.hud.zone', { name: Game.i18n.t(zoneKey) }));
     }
     /* Boss 血条 */
     const bb = $('boss-bar');
@@ -321,7 +322,13 @@
       if (boss && boss.alive && boss.aggro) {
         writeHidden(bb, false);
         const bt = $('boss-name');
-        if (bt) writeText(bt, '👹 ' + boss.name);
+        if (bt) {
+          /* Boss 名走字典（boss.0-3，与当前区域绑定）；字典缺失时回退实体名 */
+          const bKey = 'boss.' + Game.state.zone;
+          let bName = Game.i18n.t(bKey);
+          if (bName === bKey) bName = boss.name;
+          writeText(bt, Game.i18n.t('ui.hud.boss', { name: bName }));
+        }
         const bf = $('boss-fill');
         if (bf) writeWidth(bf, Math.max(0, Math.min(100, (boss.hp / boss.hpMax) * 100)), 0);
       } else {
@@ -382,7 +389,7 @@
     m.classList.remove('flex');
   }
   function hideAllModals() {
-    for (const id of ['modal-inv', 'modal-friends', 'modal-guide', 'modal-growth']) hideModal(id);
+    for (const id of ['modal-inv', 'modal-friends', 'modal-guide', 'modal-growth', 'modal-confirm']) hideModal(id);
     closeCatMenu();
   }
 
@@ -432,7 +439,7 @@
       const blocked = best.adopted || best.friendship < 60;
       if (adoptBtn.disabled !== blocked) adoptBtn.disabled = blocked;
       writeStyle(adoptBtn, 'opacity', blocked ? '0.4' : '1');
-      writeText(adoptBtn, best.adopted ? '🤝 已收养' : '🤝 收养');
+      writeText(adoptBtn, Game.i18n.t(best.adopted ? 'ui.catmenu.adopted' : 'ui.catmenu.adopt'));
     }
   }
 
@@ -453,19 +460,19 @@
     const invEl = $('inv-list');
     if (invEl) {
       if (!p.inventory.length) {
-        invEl.innerHTML = '<div class="text-slate-400 text-sm italic p-4 text-center">行囊空空——去采集、钓鱼、捕猎填满它吧。</div>';
+        invEl.innerHTML = '<div class="text-slate-400 text-sm italic p-4 text-center">' + Game.i18n.t('ui.inv.empty') + '</div>';
       } else {
         invEl.innerHTML = p.inventory.map((it) => {
           const def = Object.prototype.hasOwnProperty.call(E.ITEMS, it.id) ? E.ITEMS[it.id] : null;
           if (!def) return '';
           const usable = def.book || def.food || def.mood || def.heal || def.equip || def.zoomies;
           const equipped = def.equip && p.equipped[def.equip] === it.id;
-          const btnLabel = def.equip ? (equipped ? '卸下' : '装备') : def.book ? '📖 阅读' : '使用';
+          const btnLabel = def.equip ? Game.i18n.t(equipped ? 'ui.inv.unequip' : 'ui.inv.equip') : def.book ? Game.i18n.t('ui.inv.read') : Game.i18n.t('ui.inv.use');
           return '<div class="inv-row flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition">' +
             '<span class="text-xl w-8 text-center">' + def.icon + '</span>' +
             '<div class="flex-1 min-w-0">' +
-            '<div class="text-[13px] font-medium text-slate-100 truncate">' + esc(def.name) + (equipped ? ' <span class="text-emerald-300 text-[10px]">● 已装备</span>' : '') + '</div>' +
-            '<div class="text-[11px] text-slate-400 truncate">' + esc(def.desc) + '</div>' +
+            '<div class="text-[13px] font-medium text-slate-100 truncate">' + esc(Game.i18n.t('item.' + it.id + '.name')) + (equipped ? ' <span class="text-emerald-300 text-[10px]">' + Game.i18n.t('ui.inv.equipped') + '</span>' : '') + '</div>' +
+            '<div class="text-[11px] text-slate-400 truncate">' + esc(Game.i18n.t('item.' + it.id + '.desc')) + '</div>' +
             '</div>' +
             '<span class="text-[12px] font-semibold text-slate-300 bg-black/30 px-2 py-0.5 rounded-lg">×' + esc(it.qty) + '</span>' +
             (usable
@@ -489,9 +496,9 @@
         return '<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">' +
           '<span class="text-2xl w-9 text-center">' + r.icon + '</span>' +
           '<div class="flex-1 min-w-0">' +
-          '<div class="text-[13px] font-medium text-slate-100">' + esc(r.name) + (locked ? ' <span class="text-fuchsia-300 text-[10px]">🔒 未解锁</span>' : '') + '</div>' +
-          '<div class="text-[11px] text-slate-400">' + esc(r.desc) + '</div>' +
-          (locked ? '<div class="text-[10px] text-fuchsia-300 mt-0.5">需要技能：' + esc(E.SKILL_NAMES[r.req]) + '</div>' : '') +
+          '<div class="text-[13px] font-medium text-slate-100">' + esc(Game.i18n.t('recipe.' + r.id + '.name')) + (locked ? ' <span class="text-fuchsia-300 text-[10px]">' + Game.i18n.t('ui.craft.locked') + '</span>' : '') + '</div>' +
+          '<div class="text-[11px] text-slate-400">' + esc(Game.i18n.t('recipe.' + r.id + '.desc')) + '</div>' +
+          (locked ? '<div class="text-[10px] text-fuchsia-300 mt-0.5">' + Game.i18n.t('ui.craft.needSkill', { skill: Game.i18n.t('skill.' + r.req + '.name') }) + '</div>' : '') +
           '<div class="text-[11px] mt-1">' +
           parts.map((k) => {
             const def = E.ITEMS[k];
@@ -499,10 +506,10 @@
             const need = r.parts[k];
             return '<span class="mr-2 ' + (have >= need ? 'text-emerald-300' : 'text-rose-300') + '">' + def.icon + ' ' + esc(have) + '/' + esc(need) + '</span>';
           }).join('') +
-          (dayBlocked ? '<span class="text-amber-300">🌙 需要白天</span>' : '') +
+          (dayBlocked ? '<span class="text-amber-300">' + Game.i18n.t('ui.craft.dayOnly') + '</span>' : '') +
           '</div></div>' +
           '<button data-craft="' + r.id + '" class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition ' +
-          (can ? 'bg-amber-500/90 hover:bg-amber-400 text-black' : 'bg-white/10 text-slate-500 cursor-not-allowed') + '">' + (locked ? '🔒' : '合成') + '</button>' +
+          (can ? 'bg-amber-500/90 hover:bg-amber-400 text-black' : 'bg-white/10 text-slate-500 cursor-not-allowed') + '">' + (locked ? '🔒' : Game.i18n.t('ui.craft.craft')) + '</button>' +
           '</div>';
       }).join('');
       craftEl.querySelectorAll('[data-craft]').forEach((b) => {
@@ -510,7 +517,7 @@
           const r = E.RECIPES.find((x) => x.id === b.getAttribute('data-craft'));
           if (!r) return;
           if (r.req && !E.hasSkill(r.req)) {
-            Game.ui.log('🔒 需要技能【' + E.SKILL_NAMES[r.req] + '】才能合成。', 'info');
+            Game.ui.log(Game.i18n.t('log.craft.needSkill', { skill: Game.i18n.t('skill.' + r.req + '.name') }), 'info');
             return;
           }
           const parts = Object.keys(r.parts);
@@ -518,7 +525,7 @@
           if (!parts.every((k) => E.countItem(k) >= r.parts[k]) || dayBlocked) return;
           parts.forEach((k) => E.removeItem(k, r.parts[k]));
           E.addItem(r.id);
-          Game.ui.log('🔨 合成了 ' + E.ITEMS[r.id].name + '！', 'craft');
+          Game.ui.log(Game.i18n.t('log.craft.done', { name: Game.i18n.t('item.' + r.id + '.name') }), 'craft');
           Game.sfx && Game.sfx.craft();
           refreshModals();
         });
@@ -531,20 +538,20 @@
       const unknown = E.companions.length - adopted.length - strays.length;
       const card = (c) => {
         const perks = [
-          ['心情光环', c.adopted],
-          ['危险预警', c.adopted && c.friendship >= 70],
-          ['狩猎协助', c.adopted && c.friendship >= 90],
+          [Game.i18n.t('ui.perk.mood'), c.adopted],
+          [Game.i18n.t('ui.perk.warn'), c.adopted && c.friendship >= 70],
+          [Game.i18n.t('ui.perk.hunt'), c.adopted && c.friendship >= 90],
         ];
         const perkHtml = perks.map(([nm, on]) =>
           '<span class="text-[10px] px-1.5 py-0.5 rounded-md mr-1 ' + (on ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-slate-500') + '">' + (on ? '✓ ' : '· ') + nm + '</span>'
         ).join('');
         const status = c.adopted
-          ? '<span class="text-emerald-300 font-semibold text-[11px]">好友 ❤️</span>'
+          ? '<span class="text-emerald-300 font-semibold text-[11px]">' + Game.i18n.t('ui.friends.status.adopted') + '</span>'
           : c.friendship >= 60
-            ? '<span class="text-pink-300 font-semibold text-[11px]">可收养——走近按 F！</span>'
+            ? '<span class="text-pink-300 font-semibold text-[11px]">' + Game.i18n.t('ui.friends.status.adoptable') + '</span>'
             : c.friendship > 0
-              ? '<span class="text-slate-400 text-[11px]">' + esc(Math.round(c.friendship)) + '/60 ♥ 可收养</span>'
-              : '<span class="text-slate-500 text-[11px]">害羞——先抚摸</span>';
+              ? '<span class="text-slate-400 text-[11px]">' + Game.i18n.t('ui.friends.status.approaching', { n: Math.round(c.friendship) }) + '</span>'
+              : '<span class="text-slate-500 text-[11px]">' + Game.i18n.t('ui.friends.status.shy') + '</span>';
         return '<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">' +
           '<span class="text-2xl w-9 text-center">🐈</span>' +
           '<div class="flex-1 min-w-0">' +
@@ -555,22 +562,22 @@
           '<div class="text-[11px] text-slate-400 mt-1">' + perkHtml + '</div>' +
           '</div>' +
           '<div class="text-right text-[11px] text-slate-400 leading-tight">' +
-          (c.friendship >= 100 ? '❤️ 挚友' : c.friendship > 0 ? '♥ ' + esc(Math.round(c.friendship)) + '%' : '— 害羞 —') +
+          (c.friendship >= 100 ? Game.i18n.t('ui.friends.friendship.best') : c.friendship > 0 ? Game.i18n.t('ui.friends.friendship.percent', { n: Math.round(c.friendship) }) : Game.i18n.t('ui.friends.friendship.shy')) +
           '</div>' +
           '</div>';
       };
       let html = '';
-      html += '<div class="text-[11px] font-bold text-emerald-300 uppercase tracking-wider px-1 pt-1">🐾 你的宠物（' + adopted.length + '）</div>';
+      html += '<div class="text-[11px] font-bold text-emerald-300 uppercase tracking-wider px-1 pt-1">' + Game.i18n.t('ui.friends.yourPets', { n: adopted.length }) + '</div>';
       html += adopted.length
         ? adopted.map(card).join('')
-        : '<div class="text-slate-500 text-sm italic px-2 py-1">还没有宠物——把流浪猫喂到 60 ♥，然后收养它！</div>';
-      html += '<div class="text-[11px] font-bold text-pink-300 uppercase tracking-wider px-1 pt-3">🐈 流浪猫（' + (strays.length + unknown) + '）</div>';
+        : '<div class="text-slate-500 text-sm italic px-2 py-1">' + Game.i18n.t('ui.friends.noPets') + '</div>';
+      html += '<div class="text-[11px] font-bold text-pink-300 uppercase tracking-wider px-1 pt-3">' + Game.i18n.t('ui.friends.strays', { n: strays.length + unknown }) + '</div>';
       html += strays.length ? strays.map(card).join('') : '';
       if (unknown) {
-        html += '<div class="text-slate-500 text-[12px] px-2">还有 ' + unknown + ' 只流浪猫在荒野中游荡——跟着粉色气味找它们。</div>';
+        html += '<div class="text-slate-500 text-[12px] px-2">' + Game.i18n.t('ui.friends.unknown', { n: unknown }) + '</div>';
       }
       if (!adopted.length && !strays.length && !unknown) {
-        html += '<div class="text-slate-500 text-sm italic px-2 py-1">附近还没有猫。按 E 嗅探，跟着粉色气味流寻找。</div>';
+        html += '<div class="text-slate-500 text-sm italic px-2 py-1">' + Game.i18n.t('ui.friends.none') + '</div>';
       }
       friendsEl.innerHTML = html;
     }
@@ -581,13 +588,14 @@
       const hpBonus = (p.level - 1) * 10;
       const stBonus = (p.level - 1) * 6;
       const regenBonus = Math.min(120, Math.round((p.level - 1) * 4));
-      /* 五大发展分支的技能树（猎手/厚皮/活力/闪避/巧匠可重复加点） */
+      /* 五大发展分支的技能树（猎手/厚皮/活力/闪避/巧匠可重复加点）；
+         分支标题存 i18n key，渲染时 t() 翻译 */
       const branches = [
-        ['🎯 狩猎', ['hunter', 'leap', 'keen', 'angler']],
-        ['🛡️ 生存', ['swift', 'thick', 'camo', 'vitality']],
-        ['🐈 羁绊', ['guardian', 'brave', 'summon']],
-        ['💨 闪避', ['dodge', 'agile']],
-        ['🔨 制作', ['craft', 'alchemist']],
+        ['ui.branch.hunt', ['hunter', 'leap', 'keen', 'angler']],
+        ['ui.branch.survive', ['swift', 'thick', 'camo', 'vitality']],
+        ['ui.branch.bond', ['guardian', 'brave', 'summon']],
+        ['ui.branch.dodge', ['dodge', 'agile']],
+        ['ui.branch.craft', ['craft', 'alchemist']],
       ];
       const branchHtml = branches.map(([title, ids]) => {
         const rows = ids.map((id) => {
@@ -598,45 +606,45 @@
           const maxed = lv >= def.max;
           const can = !maxed && p.skillPoints > 0;
           const btn = maxed
-            ? '<span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300">满级</span>'
-            : '<button data-learn="' + id + '" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition ' + (can ? 'bg-amber-500/90 hover:bg-amber-400 text-black' : 'bg-white/10 text-slate-500 cursor-not-allowed') + '">' + (on ? '升级' : '学习') + '</button>';
+            ? '<span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300">' + Game.i18n.t('ui.skill.maxed') + '</span>'
+            : '<button data-learn="' + id + '" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition ' + (can ? 'bg-amber-500/90 hover:bg-amber-400 text-black' : 'bg-white/10 text-slate-500 cursor-not-allowed') + '">' + Game.i18n.t(on ? 'ui.skill.upgrade' : 'ui.skill.learn') + '</button>';
           return '<div class="flex items-center gap-2 px-3 py-2 rounded-xl border ' + (on ? 'bg-amber-500/10 border-amber-400/40' : 'bg-white/5 border-white/10 opacity-70') + '">' +
             '<span class="text-lg w-7 text-center">' + (on ? '✅' : '⭐') + '</span>' +
             '<div class="flex-1 min-w-0">' +
-            '<div class="text-[12.5px] font-semibold ' + (on ? 'text-amber-200' : 'text-slate-300') + '">' + esc(def.name) +
-            (on ? ' <span class="text-emerald-300 text-[10px]">Lv.' + esc(lv) + '/' + esc(def.max) + '</span>' : '') + '</div>' +
-            '<div class="text-[11px] text-slate-400">' + esc(def.desc) + '</div>' +
+            '<div class="text-[12.5px] font-semibold ' + (on ? 'text-amber-200' : 'text-slate-300') + '">' + esc(Game.i18n.t('skill.' + id + '.name')) +
+            (on ? ' <span class="text-emerald-300 text-[10px]">' + Game.i18n.t('ui.skill.lv', { lv: lv, max: def.max }) + '</span>' : '') + '</div>' +
+            '<div class="text-[11px] text-slate-400">' + esc(Game.i18n.t('skill.' + id + '.desc')) + '</div>' +
             '</div>' + btn + '</div>';
         }).join('');
-        return '<div class="mb-2"><div class="text-[11px] font-bold text-sky-300 uppercase tracking-wider px-1 pt-1">' + title + '</div><div class="space-y-1.5">' + rows + '</div></div>';
+        return '<div class="mb-2"><div class="text-[11px] font-bold text-sky-300 uppercase tracking-wider px-1 pt-1">' + Game.i18n.t(title) + '</div><div class="space-y-1.5">' + rows + '</div></div>';
       }).join('');
       const journey = [
-        ['☀️', '存活天数', Game.state.day],
-        ['🐭', '捕猎数量', j.preyCaught || 0],
-        ['⚔️', '击杀捕食者', j.predatorsSlain || 0],
-        ['🎣', '钓鱼数量', j.fishCaught || 0],
-        ['🐈', '收养宠物', j.petsAdopted || 0],
-        ['🏆', '挑战胜利', j.challengesWon || 0],
-        ['⭐', '累计经验', j.xpTotal || 0],
+        ['☀️', 'ui.journey.days', Game.state.day],
+        ['🐭', 'ui.journey.prey', j.preyCaught || 0],
+        ['⚔️', 'ui.journey.predators', j.predatorsSlain || 0],
+        ['🎣', 'ui.journey.fish', j.fishCaught || 0],
+        ['🐈', 'ui.journey.pets', j.petsAdopted || 0],
+        ['🏆', 'ui.journey.challenges', j.challengesWon || 0],
+        ['⭐', 'ui.journey.xp', j.xpTotal || 0],
       ];
       const journeyHtml = journey.map(([ic, nm, v]) =>
         '<div class="flex items-center justify-between px-3 py-1.5 rounded-lg bg-white/5">' +
-        '<span class="text-[12px] text-slate-300">' + ic + ' ' + nm + '</span>' +
+        '<span class="text-[12px] text-slate-300">' + ic + ' ' + Game.i18n.t(nm) + '</span>' +
         '<span class="text-[12px] font-bold text-white">' + esc(v) + '</span></div>'
       ).join('');
       growthEl.innerHTML =
         '<div class="hud-panel rounded-2xl p-3 mb-3">' +
-        '<div class="flex items-center justify-between"><span class="text-[14px] font-bold text-amber-300">Lv ' + esc(p.level) + '</span>' +
-        '<span class="text-[12px] font-bold text-fuchsia-300">技能点：' + esc(p.skillPoints) + '</span>' +
-        '<span class="text-[11px] text-slate-400">' + esc(p.xp) + ' / ' + esc(need) + ' 经验</span></div>' +
+        '<div class="flex items-center justify-between"><span class="text-[14px] font-bold text-amber-300">' + Game.i18n.t('ui.hud.level', { n: p.level }) + '</span>' +
+        '<span class="text-[12px] font-bold text-fuchsia-300">' + Game.i18n.t('ui.growth.skillPoints', { n: p.skillPoints }) + '</span>' +
+        '<span class="text-[11px] text-slate-400">' + Game.i18n.t('ui.growth.xp', { xp: p.xp, need: need }) + '</span></div>' +
         '<div class="h-2.5 rounded-full bg-black/40 mt-2 overflow-hidden"><div class="h-full rounded-full" style="width:' + esc(Math.min(100, (p.xp / need) * 100).toFixed(1)) + '%;background:linear-gradient(90deg,#fbbf24,#f59e0b)"></div></div>' +
-        '<div class="text-[11px] text-slate-400 mt-2">等级加成：最大生命 +' + esc(hpBonus) + ' · 最大体力 +' + esc(stBonus) + ' · 最大心情 +' + esc(stBonus) + ' · 体力回复 +' + esc(regenBonus) + '%</div>' +
-        '<div class="text-[11px] text-slate-400">心情暴击率：<b class="text-amber-300">' + esc(Math.round(E.critChance() * 100)) + '%</b>（心情越好暴击越高，双倍伤害）</div>' +
-        '<div class="text-[11px] text-slate-500">技能点只在升级时获得——每升 1 级 +1 点，请谨慎规划加点路线；猎手本能 / 飞扑袭杀 / 厚实毛皮 / 活力充盈 / 灵动闪避 / 能工巧匠可重复加点。</div>' +
+        '<div class="text-[11px] text-slate-400 mt-2">' + Game.i18n.t('ui.growth.bonus', { hp: hpBonus, st: stBonus, mood: stBonus, regen: regenBonus }) + '</div>' +
+        '<div class="text-[11px] text-slate-400">' + Game.i18n.t('ui.growth.crit', { pct: Math.round(E.critChance() * 100) }) + '</div>' +
+        '<div class="text-[11px] text-slate-500">' + Game.i18n.t('ui.growth.notes') + '</div>' +
         '</div>' +
-        '<div class="text-[11px] font-bold text-amber-300 uppercase tracking-wider px-1 pt-1">📖 技能树（已投入 ' + esc(p.skills.length) + ' 点）</div>' +
+        '<div class="text-[11px] font-bold text-amber-300 uppercase tracking-wider px-1 pt-1">' + Game.i18n.t('ui.growth.skillTree', { n: p.skills.length }) + '</div>' +
         branchHtml +
-        '<div class="text-[11px] font-bold text-emerald-300 uppercase tracking-wider px-1 pt-3">🌱 成长轨迹</div>' +
+        '<div class="text-[11px] font-bold text-emerald-300 uppercase tracking-wider px-1 pt-3">' + Game.i18n.t('ui.growth.journey') + '</div>' +
         '<div class="space-y-1">' + journeyHtml + '</div>';
       growthEl.querySelectorAll('[data-learn]').forEach((b) => {
         b.addEventListener('click', () => { E.learnSkill(b.getAttribute('data-learn')); });
@@ -776,18 +784,35 @@
       if (el) el.textContent = muted ? '🔇' : '🔊';
     });
     wire('btn-reset', () => {
-      if (confirm('Start a brand-new game? Your current save will be wiped.')) {
+      /* 新游戏：游戏内确认面板（替代浏览器 confirm） */
+      showModal('modal-confirm');
+    });
+    const resetYes = $('confirm-reset-yes');
+    if (resetYes) {
+      resetYes.addEventListener('click', () => {
+        hideModal('modal-confirm');
+        /* 开始全新游戏：清空存档并刷新（main.js 会跳过 beforeunload 自动存档） */
+        if (Game.startNewGame) { Game.startNewGame(); return; }
         try { localStorage.removeItem('wfissave'); } catch (e) { /* ignore */ }
         location.reload();
-      }
-    });
-    /* modal closes */
+      });
+    }
+    const resetNo = $('confirm-reset-no');
+    if (resetNo) resetNo.addEventListener('click', () => hideModal('modal-confirm'));
+    /* modal closes（新游戏确认面板不响应背景点击，防误关——只能 ✕/取消/确认） */
     for (const id of ['modal-inv', 'modal-friends', 'modal-guide', 'modal-growth']) {
       const m = $(id);
       if (!m) continue;
       m.addEventListener('click', (e) => { if (e.target === m) hideModal(id); });
       const close = m.querySelector('.modal-close');
       if (close) close.addEventListener('click', () => hideModal(id));
+    }
+    {
+      const cm = $('modal-confirm');
+      if (cm) {
+        const close = cm.querySelector('.modal-close');
+        if (close) close.addEventListener('click', () => hideModal('modal-confirm'));
+      }
     }
     /* tabs */
     const ti = $('tab-inv'), tc = $('tab-craft');

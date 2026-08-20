@@ -17,12 +17,13 @@
   const H = 168;
   const T = { MEADOW: 0, FOREST: 1, WATER: 2, SAND: 3, GRASS: 4, ROCK: 5, WALL: 6, ROAD: 7, DIRT: 8, SWAMP: 9, URBAN: 10, LAVA: 11 };
 
-  /* 各区域仅展示用名称；min 字段已随等级门一并移除（transitionZone 从不检查等级） */
+  /* 各区域信息：name 为中文展示名（兼容 ui.js 等旧引用），
+     key 为 i18n key（zone.0..zone.3），渲染/日志处用 Game.i18n.t() 翻译 */
   const ZONE_INFO = {
-    0: { name: '荒野草原' },
-    1: { name: '城市小区' },
-    2: { name: '干燥荒野' },
-    3: { name: '幽暗森林' },
+    0: { name: '荒野草原', key: 'zone.0' },
+    1: { name: '城市小区', key: 'zone.1' },
+    2: { name: '干燥荒野', key: 'zone.2' },
+    3: { name: '幽暗森林', key: 'zone.3' },
   };
 
   const terrain = new Uint8Array(W * H);
@@ -422,6 +423,7 @@
   }
 
   /* ------------------------------------------------------------------ gates */
+  /* 传送门 label 存 i18n key（zone.X），渲染处用 Game.i18n.t() 翻译成当前语言 */
   function placeGates() {
     /* 大门周围清出一小片可行走区域，避免到达时卡在墙里 */
     const walkBase = () => (zone === 1 ? T.URBAN : zone === 2 ? T.DIRT : T.MEADOW);
@@ -434,25 +436,27 @@
           if (inBounds(nx, ny) && terrain[idx(nx, ny)] !== T.WATER) terrain[idx(nx, ny)] = base;
         }
       }
+      /* 中心格强制可行走：绝不允许传送门落在水面上（周围可保留水） */
+      terrain[idx(tx, ty)] = base;
       features.push({ type: 'gate', tx, ty, to, label, regrowT: 0 });
     };
     if (zone === 0) {
-      g(Math.floor(W / 2), 4, 1, '城市小区');
-      g(W - 4, Math.floor(H / 2), 2, '干燥荒野');
-      g(4, Math.floor(H / 2), 3, '幽暗森林');
+      g(Math.floor(W / 2), 4, 1, 'zone.1');      /* 城市小区 */
+      g(W - 4, Math.floor(H / 2), 2, 'zone.2');  /* 干燥荒野 */
+      g(4, Math.floor(H / 2), 3, 'zone.3');      /* 幽暗森林 */
       /* 右下角：巨野猪守护通往城市的传送门 */
-      g(150, 150, 1, '城市小区');
+      g(150, 150, 1, 'zone.1');
     } else if (zone === 1) {
-      g(4, CITY.MID, 0, '荒野草原');   /* 城市西端出口 */
+      g(4, CITY.MID, 0, 'zone.0');   /* 城市西端出口 */
       /* 东端：弹弓顽童守护通往干燥荒野的传送门 */
-      g(161, CITY.MID, 2, '干燥荒野');
+      g(161, CITY.MID, 2, 'zone.2');
     } else if (zone === 2) {
-      g(4, Math.floor(H / 2), 0, '荒野草原');
-      g(8, Math.floor(H / 2), 1, '城市小区');       /* 西侧返回城市 */
-      g(150, 150, 3, '幽暗森林');                   /* 右下角：巨狼守护通往森林的传送门 */
+      g(4, Math.floor(H / 2), 0, 'zone.0');
+      g(8, Math.floor(H / 2), 1, 'zone.1');       /* 西侧返回城市 */
+      g(150, 150, 3, 'zone.3');                   /* 右下角：巨狼守护通往森林的传送门 */
     } else if (zone === 3) {
-      g(83, 5, 2, '干燥荒野');                      /* 长路北端：返回干燥荒野 */
-      g(160, 150, 0, '荒野草原');                   /* 右下角：巨蛇守护回荒野的传送门 */
+      g(83, 5, 2, 'zone.2');                      /* 长路北端：返回干燥荒野 */
+      g(160, 150, 0, 'zone.0');                   /* 右下角：巨蛇守护回荒野的传送门 */
     }
   }
 

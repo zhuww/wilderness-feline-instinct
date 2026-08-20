@@ -17,6 +17,9 @@
   const U = Game.utils;
   const W = Game.world;
 
+  /* i18n 翻译助手：i18n.js 先于本文件加载，缺失时回退原 key */
+  const tr = (k, v) => (Game.i18n && typeof Game.i18n.t === 'function') ? Game.i18n.t(k, v) : k;
+
   const WEIGHTS = { rival: 0.14, dog: 0.14, storm: 0.12, salmon: 0.10, viper: 0.11, wolf: 0.13, stampede: 0.08, eagle: 0.09, fog: 0.09 };
   const DUR = { rival: 75, dog: 65, storm: 45, salmon: 45, viper: 35, wolf: 55, stampede: 25, eagle: 45, fog: 60 };
 
@@ -54,16 +57,17 @@
     return 'rival';
   }
 
+  /* 挑战横幅：存 i18n key（title/desc），渲染时用 tr() 翻译 */
   const BANNERS = {
-    rival: ['🐈‍⬛ 领地入侵', '对手猫正在抢占你的地盘——扑击赶跑它们！'],
-    dog: ['🐕 恶犬追击！', '快跑！躲进高草丛，或逃进洞穴！'],
-    storm: ['⛈️ 雷雨风暴', '快找地方躲避闪电！'],
-    salmon: ['🐟 三文鱼洄游', '在河边钓鱼——必定收获！'],
-    viper: ['🐍 毒蛇群袭', '击退毒蛇群！'],
-    wolf: ['🐺 狼群来袭！', '狼群在猎杀你——反击或逃进洞穴！'],
-    stampede: ['🐗 野猪狂奔！', '躲开狂奔的野猪！'],
-    eagle: ['🦅 鹰击俯冲！', '注意地上的影子——躲开俯冲的鹰！'],
-    fog: ['🌫️ 浓雾迷路！', '在时间耗尽前找到信标（洞穴或泉水）！'],
+    rival: ['challenge.rival.title', 'challenge.rival.desc'],
+    dog: ['challenge.dog.title', 'challenge.dog.desc'],
+    storm: ['challenge.storm.title', 'challenge.storm.desc'],
+    salmon: ['challenge.salmon.title', 'challenge.salmon.desc'],
+    viper: ['challenge.viper.title', 'challenge.viper.desc'],
+    wolf: ['challenge.wolf.title', 'challenge.wolf.desc'],
+    stampede: ['challenge.stampede.title', 'challenge.stampede.desc'],
+    eagle: ['challenge.eagle.title', 'challenge.eagle.desc'],
+    fog: ['challenge.fog.title', 'challenge.fog.desc'],
   };
 
   /* ------------------------------------------------------------- spawning */
@@ -85,7 +89,7 @@
             colorIdx: U.randInt(0, 2),
           });
         }
-        Game.ui.log('⚠️ 对手猫入侵你的领地——扑击赶跑它们！', 'danger');
+        Game.ui.log(tr('log.challenge.rival.start'), 'danger');
         Game.sfx && Game.sfx.alert();
         break;
       }
@@ -97,7 +101,7 @@
             animT: Math.random() * 10, state: 'chase', tetherX: s.x, tetherY: s.y,
             attackCd: 0, bites: 0, loseT: 0, staggerT: 0, barkT: 0, scentT: 0, alive: true,
           });
-          Game.ui.log('🐕 一只野狗在追你——快跑！', 'danger');
+          Game.ui.log(tr('log.challenge.dog.start'), 'danger');
           Game.sfx && Game.sfx.bark();
         }
         break;
@@ -106,13 +110,13 @@
         /* 记录进入风暴前的天气，结束时恢复，避免天气永久卡在 rain（低30） */
         c.prevWeather = Game.state.weather;
         c.prevWeatherT = Game.state.weatherT;
-        Game.ui.log('⛈️ 暴雨雷电来袭——快找掩护！', 'danger');
+        Game.ui.log(tr('log.challenge.storm.start'), 'danger');
         Game.sfx && Game.sfx.thunder();
         Game.state.weather = 'rain';
         break;
       }
       case 'salmon': {
-        Game.ui.log('🐟 三文鱼洄游！在河边钓鱼——必定收获！', 'good');
+        Game.ui.log(tr('log.challenge.salmon.start'), 'good');
         Game.sfx && Game.sfx.craft();
         break;
       }
@@ -126,7 +130,7 @@
             attackCd: 0, wanderT: U.randRange(0.5, 2), scentT: U.randRange(0.2, 0.8), alive: true,
           });
         }
-        Game.ui.log('🐍 毒蛇群包围了你——击退它们！', 'danger');
+        Game.ui.log(tr('log.challenge.viper.start'), 'danger');
         Game.sfx && Game.sfx.alert();
         break;
       }
@@ -142,7 +146,7 @@
             attackCd: 0, staggerT: 0, scentT: U.randRange(0.2, 0.8), alive: true,
           });
         }
-        Game.ui.log('🐺 狼群正在窥伺你——反击或逃跑！', 'danger');
+        Game.ui.log(tr('log.challenge.wolf.start'), 'danger');
         Game.sfx && Game.sfx.alert();
         break;
       }
@@ -157,14 +161,14 @@
             damageCd: 0, alive: true,
           });
         }
-        Game.ui.log('🐗 野猪狂奔！躲开冲撞的野猪！', 'danger');
+        Game.ui.log(tr('log.challenge.stampede.start'), 'danger');
         Game.sfx && Game.sfx.alert();
         break;
       }
       case 'eagle': {
         c.dives = 3 + U.randInt(0, 2);
         c.nextDive = 1.8;
-        Game.ui.log('🦅 一只鹰在头顶盘旋——躲开它的俯冲！', 'danger');
+        Game.ui.log(tr('log.challenge.eagle.start'), 'danger');
         Game.sfx && Game.sfx.alert();
         break;
       }
@@ -178,7 +182,7 @@
         }
         c.target = { x: (f.tx + 0.5) * W.TILE, y: (f.ty + 0.5) * W.TILE };
         c.targetName = f.type === 'cave' ? 'cave' : 'spring';
-        Game.ui.log('🌫️ 浓雾弥漫——在时间耗尽前找到' + (c.targetName === 'cave' ? '洞穴' : '泉水') + '信标逃出去！', 'danger');
+        Game.ui.log(tr('log.challenge.fog.start', { name: tr(c.targetName === 'cave' ? 'misc.cave' : 'misc.spring') }), 'danger');
         Game.sfx && Game.sfx.cave();
         break;
       }
@@ -195,19 +199,19 @@
   function hitRival(e) {
     e.hp -= 1;
     e.hurtT = 0.5;
-    Game.ui.log('🐈‍⬛ 你拍开了一只对手猫！', 'combat');
+    Game.ui.log(tr('log.challenge.rival.hit'), 'combat');
     Game.sfx && Game.sfx.hit();
     Game.particles.spawn({ x: e.x, y: e.y, kind: 'ring', size: 22, color: 'rgba(255,140,60,0.8)', life: 0.35 });
     if (e.hp <= 0) {
       e.state = 'flee';
-      Game.ui.log('💨 对手猫落荒而逃！', 'good');
+      Game.ui.log(tr('log.challenge.rival.fled'), 'good');
     }
   }
 
   function hitDog(e) {
     e.staggerT = 1.6;      /* stunned — the chase pauses, run! */
     e.state = 'search';
-    Game.ui.log('🐕 呜咽！你眩晕了野狗——快跑！', 'combat');
+    Game.ui.log(tr('log.challenge.dog.stun'), 'combat');
     Game.sfx && Game.sfx.hurt();
     Game.particles.spawn({ x: e.x, y: e.y, kind: 'ring', size: 26, color: 'rgba(255,200,120,0.8)', life: 0.4 });
   }
@@ -219,7 +223,7 @@
     if (e.hp <= 0) {
       e.alive = false;
       Game.entities.addItem('herbs', 1);
-      Game.ui.log('💀 你碾碎了毒蛇！（+草药）', 'combat');
+      Game.ui.log(tr('log.challenge.viper.kill'), 'combat');
     }
   }
 
@@ -231,9 +235,9 @@
     if (e.hp <= 0) {
       e.alive = false;
       Game.entities.addXp(18);
-      Game.ui.log('💀 你放倒了一只狼！（+18 经验）', 'combat');
+      Game.ui.log(tr('log.challenge.wolf.kill'), 'combat');
     } else {
-      Game.ui.log('🐺 狼被打得踉跄！', 'combat');
+      Game.ui.log(tr('log.challenge.wolf.stagger'), 'combat');
     }
   }
 
@@ -267,7 +271,7 @@
         e.markT = 7;
         if (!ch.current.marked) {
           ch.current.marked = true;
-          Game.ui.log('⚠️ 对手猫正在标记你的领地！', 'danger');
+          Game.ui.log(tr('log.challenge.rival.mark'), 'danger');
         }
         Game.particles.spawn({ x: e.x, y: e.y, kind: 'puff', size: 7, color: 'rgba(255,150,60,0.55)', life: 0.9 });
       }
@@ -278,7 +282,7 @@
       e.swatCd = 2.5;
       const swatDmg = Game.entities.scaledDmg(5);
       Game.entities.damagePlayer(swatDmg);
-      Game.ui.log('🐈‍⬛ 对手猫挠了你一下！（-' + swatDmg + ' 生命）', 'danger');
+      Game.ui.log(tr('log.challenge.rival.swat', { n: swatDmg }), 'danger');
     }
   }
 
@@ -335,11 +339,11 @@
         e.bites++;
         const biteDmg = Game.entities.scaledDmg(14);
         Game.entities.damagePlayer(biteDmg);
-        Game.ui.log('🐕 野狗咬了你！（-' + biteDmg + ' 生命）', 'danger');
+        Game.ui.log(tr('log.challenge.dog.bite', { n: biteDmg }), 'danger');
         Game.ui.redFlash && Game.ui.redFlash();
         Game.ui.shake && Game.ui.shake();
         if (e.bites >= 2) {
-          Game.ui.log('🐕 你被野狗咬惨了……', 'danger');
+          Game.ui.log(tr('log.challenge.dog.mauled'), 'danger');
           fail('dog');
           return;
         }
@@ -347,7 +351,7 @@
       e.barkT -= dt;
       if (e.barkT <= 0) {
         e.barkT = U.randRange(4, 9);
-        Game.ui.log('🐕 汪！汪！', 'danger');
+        Game.ui.log(tr('log.challenge.dog.bark'), 'danger');
         Game.sfx && Game.sfx.bark();
       }
     } else if (e.state === 'leave') {
@@ -383,7 +387,7 @@
         e.attackCd = 1.2;
         const biteDmg = Game.entities.scaledDmg(10);
         Game.entities.damagePlayer(biteDmg);
-        Game.ui.log('🐍 毒蛇咬了你！（-' + biteDmg + ' 生命）', 'danger');
+        Game.ui.log(tr('log.challenge.viper.bite', { n: biteDmg }), 'danger');
       }
     } else {
       e.state = 'wander';
@@ -427,7 +431,7 @@
         const c = ch.current;
         c.bites = (c.bites || 0) + 1;
         Game.entities.damagePlayer(e.dmg);
-        Game.ui.log('🐺 狼咬了你！（-' + e.dmg + ' 生命）', 'danger');
+        Game.ui.log(tr('log.challenge.wolf.bite', { n: e.dmg }), 'danger');
         if (c.bites >= 3) { fail('wolf'); return; }
       }
     } else {
@@ -458,7 +462,7 @@
       e.damageCd = 1.0;
       const trample = Game.entities.scaledDmg(10);
       Game.entities.damagePlayer(trample);
-      Game.ui.log('🐗 狂奔的野猪踩了你！（-' + trample + ' 生命）', 'danger');
+      Game.ui.log(tr('log.challenge.stampede.hit', { n: trample }), 'danger');
     }
     /* kick up dust */
     if (Math.random() < dt * 8) {
@@ -481,9 +485,9 @@
         if (!p.inCave && d < 62) {
           const clawDmg = Game.entities.scaledDmg(10);
           Game.entities.damagePlayer(clawDmg);
-          Game.ui.log('🦅 鹰爪抓伤了你！（-' + clawDmg + ' 生命）', 'danger');
+          Game.ui.log(tr('log.challenge.eagle.hit', { n: clawDmg }), 'danger');
         } else if (!p.inCave) {
-          Game.ui.log('🦅 鹰从你身边俯冲掠过！', 'info');
+          Game.ui.log(tr('log.challenge.eagle.miss'), 'info');
         }
         eagle = null;
         c.dives--;
@@ -501,7 +505,7 @@
           sx: tx + U.randRange(-50, 50), sy: ty - 260,
           tx, ty, t: 0, dur: 2.0,
         };
-        Game.ui.log('🦅 鹰开始俯冲——快离开影子！', 'danger');
+        Game.ui.log(tr('log.challenge.eagle.dive'), 'danger');
       }
     }
   }
@@ -536,13 +540,13 @@
           if (d < 150) {
             const boltDmg = Game.entities.scaledDmg(12);
             Game.entities.damagePlayer(boltDmg);
-            Game.ui.log('⚡ 闪电劈在你附近！（-' + boltDmg + ' 生命）', 'danger');
+            Game.ui.log(tr('log.challenge.storm.hit', { n: boltDmg }), 'danger');
             p.hurtT = 1.2;
           } else {
-            Game.ui.log('⚡ 一道闪电在不远处炸响！', 'danger');
+            Game.ui.log(tr('log.challenge.storm.far'), 'danger');
           }
         } else {
-          Game.ui.log('⚡ 风暴在洞外肆虐——洞里很安全。', 'info');
+          Game.ui.log(tr('log.challenge.storm.safe'), 'info');
         }
         strike = null;
         c.strikeT = U.randRange(3, 6);
@@ -552,7 +556,7 @@
       const a = Math.random() * U.TAU;
       const d = 60 + Math.random() * 240;   /* 落点更近，闪电更有威胁 */
       strike = { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d, warn: 1.0 };
-      Game.ui.log('⚡ 闪电就要落下了！快找掩护！', 'danger');
+      Game.ui.log(tr('log.challenge.storm.warn'), 'danger');
     }
   }
 
@@ -583,7 +587,9 @@
       if (remain('rival') === 0) { win(); return; }
       if (c.t >= c.dur) {
         const stolen = stealFood();
-        Game.ui.log('🏳️ 对手猫占据了你的部分领地！' + (stolen ? '它们偷走了' + stolen + '！' : '你的心情一落千丈……'), 'danger');
+        Game.ui.log(stolen
+          ? tr('log.challenge.rival.loseStolen', { name: stolen })
+          : tr('log.challenge.rival.lose'), 'danger');
         Game.entities.player.stats.mood = Math.max(0, Game.entities.player.stats.mood - 12);
         fail();
         return;
@@ -622,38 +628,38 @@
     const mood = (v) => Math.round(v * brave);
     if (c.type === 'rival') {
       p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + mood(15));
-      Game.ui.log('🏆 你赶跑了对手猫！（+' + mood(15) + ' 心情）', 'good');
+      Game.ui.log(tr('log.challenge.rival.win', { n: mood(15) }), 'good');
       if (Math.random() < 0.5) {
         Game.entities.addItem('sinew', 1);
-        Game.ui.log('🎁 对手猫掉落了筋腱！', 'good');
+        Game.ui.log(tr('log.challenge.rival.drop'), 'good');
       }
     } else if (c.type === 'dog') {
       p.stats.stamina = Math.min(p.stats.staminaMax, p.stats.stamina + Math.round(12 * brave));
       p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + mood(6));
-      Game.ui.log('🏆 你逃过了野狗！（+' + Math.round(12 * brave) + ' 体力）', 'good');
+      Game.ui.log(tr('log.challenge.dog.win', { n: Math.round(12 * brave) }), 'good');
     } else if (c.type === 'storm') {
       p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + mood(8));
-      Game.ui.log('🏆 你挺过了风暴！（+' + mood(8) + ' 心情）', 'good');
+      Game.ui.log(tr('log.challenge.storm.win', { n: mood(8) }), 'good');
       Game.state.weather = 'clear';
       Game.state.weatherT = 45;
     } else if (c.type === 'salmon') {
-      Game.ui.log('🏆 三文鱼洄游结束——收获颇丰！', 'good');
+      Game.ui.log(tr('log.challenge.salmon.win'), 'good');
     } else if (c.type === 'viper') {
       p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + mood(10));
-      Game.ui.log('🏆 你击退了毒蛇群！（+' + mood(10) + ' 心情）', 'good');
+      Game.ui.log(tr('log.challenge.viper.win', { n: mood(10) }), 'good');
     } else if (c.type === 'wolf') {
       p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + mood(10));
       p.stats.stamina = Math.min(p.stats.staminaMax, p.stats.stamina + 10);
-      Game.ui.log('🏆 你活过了狼群！（+10 心情）', 'good');
+      Game.ui.log(tr('log.challenge.wolf.win'), 'good');
     } else if (c.type === 'stampede') {
       p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + mood(8));
-      Game.ui.log('🏆 你躲过了野猪狂奔！（+' + mood(8) + ' 心情）', 'good');
+      Game.ui.log(tr('log.challenge.stampede.win', { n: mood(8) }), 'good');
     } else if (c.type === 'eagle') {
       p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + mood(8));
-      Game.ui.log('🏆 鹰飞走了！（+' + mood(8) + ' 心情）', 'good');
+      Game.ui.log(tr('log.challenge.eagle.win', { n: mood(8) }), 'good');
     } else if (c.type === 'fog') {
       p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + mood(8));
-      Game.ui.log('🏆 你找到了穿过浓雾的路！（+' + mood(8) + ' 心情）', 'good');
+      Game.ui.log(tr('log.challenge.fog.win', { n: mood(8) }), 'good');
     }
     /* growth: XP（随难度曲线缩放，技能点只在升级时获得） */
     Game.entities.addXp(Game.entities.scaledXp ? Game.entities.scaledXp(30) : 30);
@@ -677,7 +683,7 @@
     const p = Game.entities.player;
     p.stats.mood = Math.max(0, p.stats.mood - 6);
     p.stats.wetness = Math.min(p.stats.wetnessMax, p.stats.wetness + 15);
-    Game.ui.log('🌫️ 迷失在浓雾中……毛发又湿又冷。（-6 心情）', 'danger');
+    Game.ui.log(tr('log.challenge.fog.fail'), 'danger');
     Game.sfx && Game.sfx.hurt();
     endChallenge();
   }
@@ -726,8 +732,8 @@
       else if (c.type === 'fog') updateFog(dt);
       checkEnd();
       if (ch.current) {
-        const bn = BANNERS[c.type] || ['⚠️ 挑战', ''];
-        Game.ui.setChallenge && Game.ui.setChallenge(bn[0], bn[1], Math.max(0, c.dur - c.t), c.dur);
+        const bn = BANNERS[c.type] || [tr('challenge.fallback'), ''];
+        Game.ui.setChallenge && Game.ui.setChallenge(tr(bn[0]), tr(bn[1]), Math.max(0, c.dur - c.t), c.dur);
       }
     } else {
       ch.nextIn -= dt;
@@ -787,7 +793,7 @@
         ctx.fillStyle = 'rgba(255,235,180,0.95)';
         ctx.font = '13px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('📍 ' + (c.targetName === 'cave' ? '洞穴' : '泉水') + ' 信标', bx, by - 26);
+        ctx.fillText(tr('feature.beacon', { name: tr(c.targetName === 'cave' ? 'misc.cave' : 'misc.spring') }), bx, by - 26);
       }
     }
   }

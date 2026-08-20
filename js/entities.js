@@ -94,7 +94,8 @@
   };
   const COMPANION_NAMES = ['Mochi', 'Yuki', 'Nori', 'Suki', 'Taro', 'Kumo', 'Hana', 'Rin'];
   const TYPE_NAMES = { boar: '野猪', fox: '狐狸', viper: '毒蛇', monkey: '猴子', croc: '鳄鱼', mouse: '田鼠', grasshopper: '蚱蜢', salmon: '河鲑' };
-  const typeName = (t) => TYPE_NAMES[t] || t;
+  /* 敌人/猎物名：优先走 i18n 字典（enemy.<type>），缺失时回退数据中的中文原文 */
+  const typeName = (t) => i18nFallback('enemy.' + t, TYPE_NAMES[t] || t);
 
   const list = [];
   const companions = [];
@@ -374,7 +375,7 @@
         if (d < e.r + p.r + 5 && e.attackCd <= 0) {
           e.attackCd = 1.2;
           damagePlayer(e.dmg);
-          Game.ui.log(`🐕 流浪狗咬了你一口！（-${e.dmg} 生命）`, 'danger');
+          Game.ui.log(Game.i18n.t('log.dog.bite', { dmg: e.dmg }), 'danger');
         }
         return;
       }
@@ -383,7 +384,7 @@
     let detect = 235 * sneakFactor();
     if (d < detect && e.chaseT <= 0) {
       e.chaseT = 6;
-      Game.ui.log('🐕 流浪狗朝你狂吠追来！', 'danger');
+      Game.ui.log(Game.i18n.t('log.dog.bark'), 'danger');
       Game.sfx && Game.sfx.bark();
       return;
     }
@@ -401,12 +402,12 @@
     e.stateT = 0;
     Game.sfx && Game.sfx.hit();
     Game.particles.spawn({ x: e.x, y: e.y, kind: 'ring', size: crit ? 40 : 24, color: crit ? 'rgba(255,220,90,0.95)' : 'rgba(255,120,80,0.7)', life: 0.35 });
-    Game.ui.log(`🐕 你打中了流浪狗，${crit ? '暴击！' : ''}它夹着尾巴逃窜！`, 'combat');
+    Game.ui.log(Game.i18n.t('log.dog.hit', { crit: crit ? Game.i18n.t('log.crit.bang') : '' }), 'combat');
     if (e.hp <= 0) {
       e.alive = false;
       addItem('sinew');
       addXp(12);
-      Game.ui.log('💀 流浪狗被你赶跑了。（+筋腱 +12 经验）', 'combat');
+      Game.ui.log(Game.i18n.t('log.dog.defeated'), 'combat');
     }
   }
 
@@ -458,7 +459,7 @@
       } else {
         if (d < 300 && boss.chargeCd <= 0) {
           boss.state = 'charge'; boss.stateT = 1.0; boss.chargeCd = 3.5;
-          Game.ui.log('🐗 巨野猪向你冲来！', 'danger');
+          Game.ui.log(Game.i18n.t('log.boss.boar.charge'), 'danger');
           Game.sfx && Game.sfx.alert();
         } else {
           boss.dir = Math.atan2(p.y - boss.y, p.x - boss.x);
@@ -468,7 +469,7 @@
       if (d < boss.r + p.r + 6 && boss.attackCd <= 0) {
         boss.attackCd = 1.2;
         damagePlayer(boss.dmg);
-        Game.ui.log(`🐗 巨野猪撞飞了你！（-${boss.dmg} 生命）`, 'danger');
+        Game.ui.log(Game.i18n.t('log.boss.boar.hit', { dmg: boss.dmg }), 'danger');
       }
     } else if (boss.bt === 'wolf') {
       boss.dir = Math.atan2(p.y - boss.y, p.x - boss.x);
@@ -476,7 +477,7 @@
       if (d < boss.r + p.r + 6 && boss.attackCd <= 0) {
         boss.attackCd = 1.0;
         damagePlayer(boss.dmg);
-        Game.ui.log(`🐺 巨狼咬了你！（-${boss.dmg} 生命）`, 'danger');
+        Game.ui.log(Game.i18n.t('log.boss.wolf.hit', { dmg: boss.dmg }), 'danger');
       }
     } else if (boss.bt === 'cobra') {
       /* 大眼镜蛇（关底 Boss）：毒液喷射 + 远距离扑击 + 近战咬毒
@@ -496,7 +497,7 @@
             vx: Math.cos(a) * 340, vy: Math.sin(a) * 340,
             life: 1.55, dmg: 10, venom: true,   /* life 限制射程 ≈527px */
           });
-          Game.ui.log('🐍 大眼镜蛇喷出一团毒液！', 'danger');
+          Game.ui.log(Game.i18n.t('log.boss.cobra.spit'), 'danger');
           Game.sfx && Game.sfx.pounce();
           for (let i = 0; i < 7; i++) {
             Game.particles.spawn({
@@ -519,7 +520,7 @@
           boss.dir = Math.atan2(p.y - boss.y, p.x - boss.x);
           boss.vx = Math.cos(boss.dir) * 580;
           boss.vy = Math.sin(boss.dir) * 580;
-          Game.ui.log('🐍 大眼镜蛇如箭般扑击而来！', 'danger');
+          Game.ui.log(Game.i18n.t('log.boss.cobra.leap'), 'danger');
           Game.sfx && Game.sfx.alert();
         }
       } else if (boss.state === 'leap') {
@@ -533,7 +534,7 @@
           const pdmg = 30;   /* 扑击直接伤害 30 */
           damagePlayer(pdmg);
           applyPoison(p, 4, 5);   /* 中毒：每 2 秒 5 点，持续 4 秒 */
-          Game.ui.log(`🐍 眼镜蛇扑击重创了你！（-${pdmg} 生命，中毒！）`, 'danger');
+          Game.ui.log(Game.i18n.t('log.boss.cobra.leapHit', { dmg: pdmg }), 'danger');
           boss.state = 'idle';
           boss.attackCd = 1.4;
         }
@@ -548,18 +549,18 @@
         if (boss.spitCd <= 0 && dCur < 380 && dCur > 120) {
           boss.state = 'spitWindup';
           boss.stateT = 0.7;
-          Game.ui.log('🐍 大眼镜蛇蜷曲身体蓄力……（要喷毒了！）', 'danger');
+          Game.ui.log(Game.i18n.t('log.boss.cobra.spitWindup'), 'danger');
           Game.sfx && Game.sfx.alert();
         } else if (boss.leapCd <= 0 && dCur < 320 && dCur > 80) {
           boss.state = 'leapWindup';
           boss.stateT = 0.6;
-          Game.ui.log('🐍 大眼镜蛇停下脚步，盘卷起身体……（要扑击了！）', 'danger');
+          Game.ui.log(Game.i18n.t('log.boss.cobra.leapWindup'), 'danger');
           Game.sfx && Game.sfx.alert();
         } else if (dCur < boss.r + p.r + 8 && boss.attackCd <= 0) {
           boss.attackCd = 1.1;
           damagePlayer(boss.dmg);
           applyPoison(p, 5, 5);
-          Game.ui.log(`🐍 眼镜蛇咬中了你！（-${boss.dmg} 生命，中毒！）`, 'danger');
+          Game.ui.log(Game.i18n.t('log.boss.cobra.bite', { dmg: boss.dmg }), 'danger');
         }
       }
     } else if (boss.bt === 'kid') {
@@ -579,7 +580,7 @@
           x: boss.x + Math.cos(a) * 18, y: boss.y + Math.sin(a) * 18,
           vx: Math.cos(a) * 300, vy: Math.sin(a) * 300, life: 2.5, dmg: 10,
         });
-        Game.ui.log('🧒 顽童用弹弓射出一颗石子！', 'danger');
+        Game.ui.log(Game.i18n.t('log.boss.kid.shoot'), 'danger');
         Game.sfx && Game.sfx.pounce();
       }
     }
@@ -604,9 +605,9 @@
         damagePlayer(pr.dmg);
         if (pr.venom) {
           applyPoison(p, 5, 5);
-          Game.ui.log(`💚 毒液溅到你身上！（-${pr.dmg} 生命，中毒！）`, 'danger');
+          Game.ui.log(Game.i18n.t('log.poison.venom', { dmg: pr.dmg }), 'danger');
         } else {
-          Game.ui.log(`💢 你被石子砸中了！（-${pr.dmg} 生命）`, 'danger');
+          Game.ui.log(Game.i18n.t('log.boss.kid.hit', { dmg: pr.dmg }), 'danger');
         }
       }
     }
@@ -618,16 +619,33 @@
     boss.aggro = true;
     Game.sfx && Game.sfx.hit();
     Game.particles.spawn({ x: boss.x, y: boss.y, kind: 'ring', size: crit ? 52 : 30, color: crit ? 'rgba(255,220,90,0.95)' : 'rgba(255,120,80,0.8)', life: crit ? 0.55 : 0.35 });
-    if (crit) Game.ui.log(`💥 对【${boss.name}】造成暴击！${dmg} 伤害！`, 'combat');
+    if (crit) Game.ui.log(Game.i18n.t('log.boss.crit', { name: bossName(boss.bt), dmg: dmg }), 'combat');
     if (boss.hp <= 0) {
       boss.hp = 0;
       boss.alive = false;
-      Game.ui.log(`🏆 你击败了【${boss.name}】！获得大量经验！`, 'good');
+      Game.ui.log(Game.i18n.t('log.boss.defeated', { name: bossName(boss.bt) }), 'good');
       Game.sfx && Game.sfx.craft();
       addXp(Math.round(120 * (1 + (Game.state.zone || 0) * 0.25)));
       if (Game.state.bossDefeated) Game.state.bossDefeated[Game.state.zone] = true;
+      /* 记录重生时间：4 分钟（游戏时间）后自动复活 */
+      if (Game.state.bossRespawn) {
+        Game.state.bossRespawn[Game.state.zone] = Game.state.day * Game.state.DAY_LEN + Game.state.sec + 240;
+      }
       Game.particles.spawn({ x: boss.x, y: boss.y, kind: 'puff', size: 30, color: 'rgba(255,180,120,0.8)', life: 0.8 });
       bossProjectiles.length = 0;
+    }
+  }
+
+  /* Boss 自动重生：被击败后过一段时间在竞技场复活（提升可玩性） */
+  function checkBossRespawn() {
+    if ((boss && boss.alive) || !Game.state || !Game.state.bossDefeated || !Game.state.bossRespawn) return;
+    const z = Game.world.zone;
+    if (!Game.state.bossDefeated[z]) return;
+    const now = Game.state.day * Game.state.DAY_LEN + Game.state.sec;
+    if ((Game.state.bossRespawn[z] || 0) <= now) {
+      Game.state.bossDefeated[z] = false;
+      spawnBoss(z);
+      if (boss) Game.ui.log(Game.i18n.t('log.boss.respawn', { name: bossName(boss.bt) }), 'danger');
     }
   }
 
@@ -685,7 +703,7 @@
       p.stats.hp = Math.min(p.stats.hpMax, p.stats.hp + Math.round(p.stats.hpMax * 0.35));
       p.stats.stamina = p.stats.staminaMax;
       grantSkillPoint(1);
-      Game.ui.log(`🎉 升级！你现在是 ${p.level} 级！（+1 技能点）`, 'good');
+      Game.ui.log(Game.i18n.t('log.level.up', { level: p.level }), 'good');
       Game.sfx && Game.sfx.craft();
       need = xpToLevel(p.level);
     }
@@ -694,7 +712,7 @@
     if (!player) return;
     n = n || 1;
     player.skillPoints += n;
-    Game.ui.log(`📌 获得 ${n} 技能点！（当前 ${player.skillPoints}）`, 'craft');
+    Game.ui.log(Game.i18n.t('log.skill.point', { n: n, points: player.skillPoints }), 'craft');
     Game.sfx && Game.sfx.craft();
   }
   const SKILL_DEFS = {
@@ -716,6 +734,47 @@
   };
   const SKILL_NAMES = {};
   for (const k in SKILL_DEFS) SKILL_NAMES[k] = SKILL_DEFS[k].name;
+
+  /* ------------------------------------------------------------ i18n 辅助函数
+     数据对象（ITEMS / RECIPES / SKILL_DEFS / BOSS_DEFS / TYPE_NAMES）里的
+     name / desc 保留中文原文，供 ui / render / challenges 等模块直接读取（结构不变）；
+     运行时展示一律通过这些辅助函数走 Game.i18n.t()，切换语言即时生效，
+     字典缺失（返回 key 本身）时回退数据对象中的中文原文，绝不崩。 */
+  function i18nFallback(key, zh) {
+    if (!Game.i18n || typeof Game.i18n.t !== 'function') return zh;
+    const s = Game.i18n.t(key);
+    return (s === undefined || s === null || s === key) ? zh : s;
+  }
+  /* 物品名 / 描述：key = item.<id>.name / item.<id>.desc */
+  function itemName(id) {
+    const def = itemDef(id);
+    return i18nFallback('item.' + id + '.name', def ? def.name : id);
+  }
+  function itemDesc(id) {
+    const def = itemDef(id);
+    return i18nFallback('item.' + id + '.desc', def ? def.desc : '');
+  }
+  /* 技能名 / 描述：key = skill.<id>.name / skill.<id>.desc */
+  function skillName(id) {
+    const def = SKILL_DEFS[id];
+    return i18nFallback('skill.' + id + '.name', def ? def.name : id);
+  }
+  function skillDesc(id) {
+    const def = SKILL_DEFS[id];
+    return i18nFallback('skill.' + id + '.desc', def ? def.desc : '');
+  }
+  /* Boss 名：字典按区域索引（boss.<zone>），从 bt（boar/kid/wolf/cobra）反查区域 */
+  function bossZoneOf(bt) {
+    for (const z in BOSS_DEFS) {
+      if (Object.prototype.hasOwnProperty.call(BOSS_DEFS, z) && BOSS_DEFS[z].bt === bt) return z;
+    }
+    return '0';
+  }
+  function bossName(bt) {
+    const z = bossZoneOf(bt);
+    const def = BOSS_DEFS[z] || BOSS_DEFS[0];
+    return i18nFallback('boss.' + z, def ? def.name : bt);
+  }
   function skillLevel(id) {
     return player ? player.skills.filter((s) => s === id).length : 0;
   }
@@ -752,23 +811,23 @@
     if (!p) return false;
     const def = SKILL_DEFS[skillId];
     if (!def) {
-      Game.ui.log('📖 没有这个技能！', 'info');
+      Game.ui.log(Game.i18n.t('log.skill.none'), 'info');
       return false;
     }
     const lv = skillLevel(skillId);
     if (lv >= def.max) {
-      Game.ui.log(`📖 ${def.name} 已经满级（Lv.${def.max}）！`, 'info');
+      Game.ui.log(Game.i18n.t('log.skill.maxed', { name: skillName(skillId), max: def.max }), 'info');
       return false;
     }
     if (p.skillPoints < 1) {
-      Game.ui.log('📌 技能点不足——只有升级才能获得技能点。', 'info');
+      Game.ui.log(Game.i18n.t('log.skill.noPoint'), 'info');
       return false;
     }
     p.skillPoints -= 1;
     p.skills.push(skillId); /* 同一技能可重复点亮，逐级提升 */
     recalcMaxStats(p);
     addXp(25);
-    Game.ui.log(`⭐ 习得技能：${def.name} Lv.${lv + 1}/${def.max}！（-1 技能点）`, 'craft');
+    Game.ui.log(Game.i18n.t('log.skill.learned', { name: skillName(skillId), lv: lv + 1, max: def.max }), 'craft');
     Game.sfx && Game.sfx.craft();
     Game.ui.refreshModals && Game.ui.refreshModals();
     return true;
@@ -780,7 +839,7 @@
     if (!force && Math.random() > 0.4) return false;
     const id = U.pick(unlearned);
     addItem(id);
-    Game.ui.log(`📖 发现技能书：${itemDef(id).name}！（在行囊中阅读）`, 'craft');
+    Game.ui.log(Game.i18n.t('log.skill.book', { name: itemName(id) }), 'craft');
     Game.sfx && Game.sfx.craft();
     return true;
   }
@@ -793,7 +852,7 @@
       /* 旧版技能书：技能点只在升级时获得，书改为赠送经验 */
       removeItem(id, 1);
       addXp(40);
-      Game.ui.log('📖 阅读旧技能书：+40 经验！（技能点只在升级时获得）', 'craft');
+      Game.ui.log(Game.i18n.t('log.skill.readBook'), 'craft');
       return;
     }
     if (def.equip) {
@@ -801,11 +860,11 @@
       if (p.equipped[slot]) {
         /* 卸下：装备物一直留在行囊中，只清空装备槽 */
         p.equipped[slot] = null;
-        Game.ui.log(`⬇️ 摘下了${def.name}（仍在行囊中）。`, 'info');
+        Game.ui.log(Game.i18n.t('log.equip.off', { name: itemName(id) }), 'info');
       } else {
         /* 穿上：物品保留在行囊，装备槽记录 id，背包显示"已装备"标记 */
         p.equipped[slot] = id;
-        Game.ui.log(`⬆️ 穿上了${def.name}！`, 'good');
+        Game.ui.log(Game.i18n.t('log.equip.on', { name: itemName(id) }), 'good');
       }
       Game.sfx && Game.sfx.craft();
       Game.ui.refreshModals && Game.ui.refreshModals();
@@ -823,10 +882,10 @@
       removeItem(id);
       if (def.zoomies) {
         p.zoomiesT = 6;
-        Game.ui.log(`😵‍💫 猫薄荷！！疯狂跑酷！！！${def.name}！`, 'zoomies');
+        Game.ui.log(Game.i18n.t('log.zoomies', { name: itemName(id) }), 'zoomies');
         Game.sfx && Game.sfx.zoomies();
       } else {
-        Game.ui.log(`😋 使用了${def.name}。`, 'good');
+        Game.ui.log(Game.i18n.t('log.item.use', { name: itemName(id) }), 'good');
         Game.sfx && Game.sfx.eat();
       }
     }
@@ -871,7 +930,7 @@
         p.poisonTick = 2;
         const tick = p.poisonPerTick || 10;
         s.hp -= tick;
-        Game.ui.log(`💚 毒素发作！-${tick} 生命`, 'danger');
+        Game.ui.log(Game.i18n.t('log.poison.tick', { n: tick }), 'danger');
         for (let i = 0; i < 4; i++) {
           Game.particles.spawn({
             x: p.x + U.randRange(-9, 9), y: p.y - U.randRange(2, 12),
@@ -884,7 +943,7 @@
         p.poisonT = 0;
         p.poisonTick = 0;
         p.poisonPerTick = 10;
-        Game.ui.log('🌿 毒素消退，你恢复了。', 'info');
+        Game.ui.log(Game.i18n.t('log.poison.gone'), 'info');
       }
     }
     if (s.hp <= 0) { s.hp = 0; die(); return; }
@@ -909,7 +968,7 @@
 
   function die() {
     const p = player, s = p.stats;
-    Game.ui.log('☠️ 你精疲力竭倒下了……在黎明中醒来。', 'danger');
+    Game.ui.log(Game.i18n.t('log.death'), 'danger');
     Game.sfx && Game.sfx.hurt();
     p.x = W.spawn.x; p.y = W.spawn.y;
     p.inCave = false;
@@ -1058,7 +1117,7 @@
       const tt = W.tileAt(p.x, p.y);
       if (!W.canWalk(tt.tx, tt.ty)) {
         snapToWalkable(p);
-        Game.ui.log('🐾 你踉跄了一下，站稳了脚跟。', 'info');
+        Game.ui.log(Game.i18n.t('log.stumble'), 'info');
       }
     }
 
@@ -1182,7 +1241,7 @@
         /* 落在水里——扑腾着跳回岸上 */
         Game.particles.spawn({ x: p.x, y: p.y, kind: 'splash', size: 12, color: 'rgba(160,220,255,0.9)', life: 0.6 });
         p.stats.wetness = Math.min(p.stats.wetnessMax, p.stats.wetness + 25);
-        Game.ui.log('💦 你差点落水，扑腾着跳回岸上！（毛打湿了）', 'info');
+        Game.ui.log(Game.i18n.t('log.pounce.water'), 'info');
         p.x = p.lastLand.x; p.y = p.lastLand.y;
       }
       p.state = 'idle'; p.stateT = 0; p.vx = p.vy = 0;
@@ -1198,7 +1257,7 @@
     p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + 12);
     addXp(1);
     Game.sfx && Game.sfx.groom();
-    Game.ui.log('✨ 你梳理了毛发，神清气爽！', 'good');
+    Game.ui.log(Game.i18n.t('log.groom'), 'good');
   }
 
   function catchPrey(e) {
@@ -1212,7 +1271,7 @@
       Game.state.journey.preyCaught++;
       if (e.type === 'salmon') Game.state.journey.fishCaught++;
     }
-    Game.ui.log(`🐾 抓到一只${itemDef(id).name}！`, 'catch');
+    Game.ui.log(Game.i18n.t('log.catch', { name: itemName(id) }), 'catch');
     Game.sfx && Game.sfx.catch();
     Game.particles.spawn({ x: e.x, y: e.y, kind: 'puff', size: 12, color: 'rgba(255,240,210,0.6)', life: 0.5 });
   }
@@ -1252,7 +1311,7 @@
     e.chasing = false;
     e.fleeT = 1.6;
     Game.sfx && Game.sfx.hit();
-    Game.ui.log(`⚔️ 你击中${typeName(e.type)}，造成 ${dmg} 伤害${crit ? '（暴击！）' : ''}！`, 'combat');
+    Game.ui.log(Game.i18n.t('log.combat.hit', { name: typeName(e.type), dmg: dmg, crit: crit ? Game.i18n.t('log.crit.wrap') : '' }), 'combat');
     Game.particles.spawn({ x: e.x, y: e.y, kind: 'ring', size: crit ? 44 : 26, color: crit ? 'rgba(255,220,90,0.95)' : 'rgba(255,120,80,0.7)', life: crit ? 0.5 : 0.35 });
     if (e.hp <= 0) killPredator(e);
   }
@@ -1262,12 +1321,12 @@
     if (e.type === 'boar') { addItem('fat', 2); addItem('sinew'); }
     if (e.type === 'fox') { addItem('sinew', 2); }
     if (e.type === 'viper') { addItem('herbs', 2); }
-    if (e.type === 'monkey') { addItem('sinew', U.randInt(1, 2)); if (Math.random() < 0.12) { addItem('gem_jade'); Game.ui.log('💎 猴子的巢穴里掉出一块翡翠！', 'good'); } }
-    if (e.type === 'croc') { addItem('fat', 2); addItem('sinew'); if (Math.random() < 0.2) { addItem('gem_sapphire'); Game.ui.log('💎 鳄鱼皮里嵌着一颗蓝宝石！', 'good'); } }
+    if (e.type === 'monkey') { addItem('sinew', U.randInt(1, 2)); if (Math.random() < 0.12) { addItem('gem_jade'); Game.ui.log(Game.i18n.t('log.drop.jade'), 'good'); } }
+    if (e.type === 'croc') { addItem('fat', 2); addItem('sinew'); if (Math.random() < 0.2) { addItem('gem_sapphire'); Game.ui.log(Game.i18n.t('log.drop.sapphire'), 'good'); } }
     addXp(scaledXp(e.type === 'boar' ? 25 : e.type === 'fox' ? 20 : e.type === 'croc' ? 30 : e.type === 'monkey' ? 15 : 15));
     if (Game.state && Game.state.journey) Game.state.journey.predatorsSlain++;
     if (Math.random() < 0.08) grantSkillBook(false);
-    Game.ui.log(`💀 ${typeName(e.type)}倒下了。`, 'combat');
+    Game.ui.log(Game.i18n.t('log.combat.kill', { name: typeName(e.type) }), 'combat');
     Game.sfx && Game.sfx.craft();
     Game.particles.spawn({ x: e.x, y: e.y, kind: 'puff', size: 20, color: 'rgba(150,60,40,0.6)', life: 0.7 });
   }
@@ -1278,7 +1337,7 @@
     /* 灵动闪避：每级 6% 概率完全闪避伤害 */
     const dodgeCh = skillLevel('dodge') * 0.06;
     if (dodgeCh > 0 && Math.random() < dodgeCh) {
-      Game.ui.log('💨 你灵巧地闪开了攻击！', 'combat');
+      Game.ui.log(Game.i18n.t('log.dodge'), 'combat');
       Game.sfx && Game.sfx.pounce();
       Game.particles.spawn({ x: p.x, y: p.y, kind: 'ring', size: 26, color: 'rgba(150,220,255,0.7)', life: 0.35 });
       return;
@@ -1291,7 +1350,7 @@
     amount = Math.max(1, Math.round(amount * Math.pow(0.88, skillLevel('thick'))));
     p.stats.hp -= amount;
     p.hurtT = 0.55;
-    Game.ui.log(`💔 你受到 ${amount} 点伤害！`, 'danger');
+    Game.ui.log(Game.i18n.t('log.damage', { n: amount }), 'danger');
     Game.sfx && Game.sfx.hurt();
     Game.ui.shake && Game.ui.shake();
     if (p.stats.hp <= 0) { p.stats.hp = 0; die(); }
@@ -1385,7 +1444,7 @@
     e.footstepsCd -= dt;
     if (e.footstepsCd <= 0 && d < 340 && !e.chasing && (e.type === 'boar' || e.type === 'fox')) {
       e.footstepsCd = 8;
-      Game.ui.log('👂 附近传来脚步声……', 'info');
+      Game.ui.log(Game.i18n.t('log.footsteps'), 'info');
     }
 
     /* detection — 潜行 + 高草统一走 sneakFactor 缩小侦测半径 */
@@ -1406,7 +1465,7 @@
       e.chasing = true;
       if (!e.alerted) {
         e.alerted = true;
-        Game.ui.log(`⚠️ 一只${typeName(e.type)}发现了你！`, 'danger');
+        Game.ui.log(Game.i18n.t('log.pred.alert', { name: typeName(e.type) }), 'danger');
         Game.sfx && Game.sfx.alert();
       }
     } else if (d > detect * 1.7) {
@@ -1505,7 +1564,7 @@
       }
       if (c.summonT <= 0) {
         c.summonT = 0;
-        Game.ui.log(`🐈 ${c.name} 战斗结束，回到你身边。`, 'info');
+        Game.ui.log(Game.i18n.t('log.summon.end', { name: c.name }), 'info');
       }
       return;
     }
@@ -1534,7 +1593,7 @@
       for (const e of list) {
         if (e.kind === 'predator' && e.alive && e.chasing && U.dist2(e.x, e.y, p.x, p.y) < 300 * 300) {
           c.warnCd = 7;
-          Game.ui.log(`🐈 ${c.name}嘶叫：有捕食者靠近！`, 'danger');
+          Game.ui.log(Game.i18n.t('log.companion.warn', { name: c.name }), 'danger');
           break;
         }
       }
@@ -1545,7 +1604,7 @@
       const gifts = ['herbs', 'sinew', 'berry', 'leaves', 'vines'];
       const g = U.pick(gifts);
       addItem(g);
-      Game.ui.log(`🎁 ${c.name}给你带来了${itemDef(g).name}！`, 'good');
+      Game.ui.log(Game.i18n.t('log.companion.gift', { name: c.name, gift: itemName(g) }), 'good');
       Game.sfx && Game.sfx.craft();
     }
     /* floating hearts near very friendly cats */
@@ -1571,15 +1630,15 @@
     c.friendship = Math.min(100, c.friendship + gain);
     p.stats.mood = Math.min(p.stats.moodMax, p.stats.mood + 5);
     addXp(2);
-    Game.ui.log(`🐾 你抚摸${c.name}——它满足地咕噜咕噜叫。（+${gain} ♥）`, 'good');
+    Game.ui.log(Game.i18n.t('log.pet', { name: c.name, n: gain }), 'good');
     Game.sfx && Game.sfx.groom();
     Game.particles.spawn({ x: c.x, y: c.y - 18, kind: 'sparkle', size: 2.6, color: 'rgba(255,160,200,0.9)', vx: 0, vy: -14, life: 0.9 });
     Game.particles.spawn({ x: c.x + U.randRange(-6, 6), y: c.y - 16, kind: 'dot', size: 3, color: 'rgba(255,140,190,0.85)', vx: U.randRange(-4, 4), vy: -16, life: 1.1, grav: -8 });
     if (first) {
-      Game.ui.log(`😺 ${c.name}开始亲近你——继续抚摸，或从猫菜单喂食更快成为朋友！`, 'info');
+      Game.ui.log(Game.i18n.t('log.pet.first', { name: c.name }), 'info');
     }
     if (!c.adopted && c.friendship >= 60) {
-      Game.ui.log(`💗 ${c.name}已经准备好成为你的朋友——从猫菜单收养它吧！`, 'good');
+      Game.ui.log(Game.i18n.t('log.pet.ready', { name: c.name }), 'good');
     }
     checkPerks(c);
   }
@@ -1587,7 +1646,7 @@
   function feedCompanion(c) {
     const giftId = ['salmon', 'cooked_salmon', 'mouse'].find((id) => countItem(id) > 0);
     if (!giftId) {
-      Game.ui.log('🍽️ 你现在没有食物可以分享（三文鱼、烤鲑鱼或老鼠）。', 'info');
+      Game.ui.log(Game.i18n.t('log.feed.none'), 'info');
       return false;
     }
     removeItem(giftId, 1);
@@ -1597,14 +1656,14 @@
     c.friendship = Math.min(100, c.friendship + gain);
     player.stats.mood = Math.min(player.stats.moodMax, player.stats.mood + 8);
     addXp(6);
-    Game.ui.log(`🍖 你把${itemDef(giftId).name}分给${c.name}！（+${gain} ♥）`, 'good');
+    Game.ui.log(Game.i18n.t('log.feed', { item: itemName(giftId), name: c.name, n: gain }), 'good');
     Game.sfx && Game.sfx.eat();
     Game.particles.spawn({ x: c.x, y: c.y - 16, kind: 'ring', size: 20, color: 'rgba(255,180,120,0.7)', life: 0.5 });
     if (first) {
-      Game.ui.log(`😺 ${c.name}很喜欢！继续下去它会信任你。`, 'info');
+      Game.ui.log(Game.i18n.t('log.feed.first', { name: c.name }), 'info');
     }
     if (!c.adopted && c.friendship >= 60) {
-      Game.ui.log(`💗 ${c.name}已经准备好成为你的朋友——从猫菜单收养它吧！`, 'good');
+      Game.ui.log(Game.i18n.t('log.pet.ready', { name: c.name }), 'good');
     }
     checkPerks(c);
     return true;
@@ -1613,7 +1672,7 @@
   function adoptCompanion(c) {
     if (c.adopted) return false;
     if (c.friendship < 60) {
-      Game.ui.log(`💭 ${c.name}还没准备好——继续抚摸和喂食（需要 60 ♥）。`, 'info');
+      Game.ui.log(Game.i18n.t('log.adopt.notReady', { name: c.name }), 'info');
       return false;
     }
     c.adopted = true;
@@ -1622,7 +1681,7 @@
     c.perk = Math.max(c.perk, 1);
     addXp(20);
     if (Game.state && Game.state.journey) Game.state.journey.petsAdopted++;
-    Game.ui.log(`🎉 ${c.name}现在是你朋友了！它会一直跟着你。`, 'good');
+    Game.ui.log(Game.i18n.t('log.adopt.ok', { name: c.name }), 'good');
     Game.sfx && Game.sfx.craft();
     for (let i = 0; i < 10; i++) {
       Game.particles.spawn({
@@ -1640,12 +1699,12 @@
     if (!c.adopted) return;
     if (c.friendship >= 70 && c.perk < 2) {
       c.perk = 2;
-      Game.ui.log(`🐈 ${c.name}现在会提醒你周围的危险！`, 'good');
+      Game.ui.log(Game.i18n.t('log.perk.warn', { name: c.name }), 'good');
       Game.sfx && Game.sfx.craft();
     }
     if (c.friendship >= 90 && c.perk < 3) {
       c.perk = 3;
-      Game.ui.log(`🐈 ${c.name}现在会和你并肩狩猎（+伤害）！`, 'good');
+      Game.ui.log(Game.i18n.t('log.perk.hunt', { name: c.name }), 'good');
       Game.sfx && Game.sfx.craft();
     }
   }
@@ -1654,12 +1713,12 @@
   function summonCompanion() {
     const p = player;
     if (p.summonCd > 0) {
-      Game.ui.log(`📣 召唤冷却中（${Math.ceil(p.summonCd)} 秒）`, 'info');
+      Game.ui.log(Game.i18n.t('log.summon.cd', { n: Math.ceil(p.summonCd) }), 'info');
       return false;
     }
     const adopted = companions.filter((c) => c.adopted);
     if (!adopted.length) {
-      Game.ui.log('😿 你还没有伙伴猫——先收养一只流浪猫吧！', 'info');
+      Game.ui.log(Game.i18n.t('log.summon.none'), 'info');
       return false;
     }
     adopted.sort((a, b) => b.friendship - a.friendship);
@@ -1671,7 +1730,7 @@
     c.summonT = boosted ? 40 : 25;
     c.attackCd = 0;
     p.summonCd = boosted ? 180 : 300;
-    Game.ui.log(`📣 ${c.name} 应召而来，与你并肩作战！（冷却 ${boosted ? 3 : 5} 分钟）`, 'good');
+    Game.ui.log(Game.i18n.t('log.summon.ok', { name: c.name, n: boosted ? 3 : 5 }), 'good');
     Game.sfx && Game.sfx.alert();
     for (let i = 0; i < 14; i++) {
       Game.particles.spawn({
@@ -1693,7 +1752,7 @@
     e.fleeT = 1.2;
     Game.sfx && Game.sfx.hit();
     Game.particles.spawn({ x: e.x, y: e.y, kind: 'ring', size: 24, color: 'rgba(255,200,120,0.8)', life: 0.35 });
-    Game.ui.log(`🐈 ${c.name} 猛扑向敌人！（${dmg} 伤害）`, 'combat');
+    Game.ui.log(Game.i18n.t('log.summon.strike', { name: c.name, dmg: dmg }), 'combat');
     if (e.hp <= 0) killPredator(e);
   }
 
@@ -1726,7 +1785,7 @@
           s.hp = Math.min(s.hpMax, s.hp + 2);
           f.regrowT = 25;
           addXp(2);
-          Game.ui.log('🍓 你吃掉了一些野莓。（+饱食，+2 生命）', 'good');
+          Game.ui.log(Game.i18n.t('log.feature.berry'), 'good');
           Game.sfx && Game.sfx.eat();
           Game.particles.spawn({ x: p.x, y: p.y - 12, kind: 'sparkle', size: 2, color: 'rgba(255,120,130,0.9)', vx: U.randRange(-6, 6), vy: -12, life: 0.6 });
           break;
@@ -1735,47 +1794,47 @@
           addItem('catnip', 1);
           f.regrowT = 30;
           addXp(2);
-          Game.ui.log('🌿 收获新鲜猫薄荷。', 'good');
+          Game.ui.log(Game.i18n.t('log.feature.catnip'), 'good');
           Game.sfx && Game.sfx.pick();
           break;
         case 'herbs':
           addItem('herbs', 1);
           f.regrowT = 30;
           addXp(2);
-          Game.ui.log('🌼 采到草药。', 'good');
+          Game.ui.log(Game.i18n.t('log.feature.herbs'), 'good');
           Game.sfx && Game.sfx.pick();
           break;
         case 'cactus':
           addItem('cactus_fruit', 1);
           f.regrowT = 40;
           addXp(3);
-          Game.ui.log('🌵 掰下一枚仙人掌果——荒漠中的甘露！', 'good');
+          Game.ui.log(Game.i18n.t('log.feature.cactus'), 'good');
           Game.sfx && Game.sfx.pick();
           break;
         case 'dragonherb':
           addItem('dragon_herb', 1);
           f.regrowT = 35;
           addXp(5);
-          Game.ui.log('🌹 采到殷红的龙血草，药力强劲！', 'good');
+          Game.ui.log(Game.i18n.t('log.feature.dragonherb'), 'good');
           Game.sfx && Game.sfx.pick();
           break;
         case 'reishi':
           addItem('reishi', 1);
           f.regrowT = 35;
           addXp(5);
-          Game.ui.log('🍄 摘下古树上的灵芝，灵光流转。', 'good');
+          Game.ui.log(Game.i18n.t('log.feature.reishi'), 'good');
           Game.sfx && Game.sfx.pick();
           break;
         case 'vine':
           addItem('vine_strand', 1);
           f.regrowT = 40;
           addXp(3);
-          Game.ui.log('🪵 割下一段坚韧的藤条。', 'good');
+          Game.ui.log(Game.i18n.t('log.feature.vine'), 'good');
           Game.sfx && Game.sfx.pick();
           break;
         case 'shelter':
           /* 避难所：蜷进去睡到天亮（城市暗巷 / 森林树洞） */
-          Game.ui.log('😴 你蜷进避难所，沉沉睡去……', 'info');
+          Game.ui.log(Game.i18n.t('log.shelter.sleep'), 'info');
           Game.sfx && Game.sfx.cave();
           Game.ui.fadeTo(1, () => {
             Game.state.sec = 6.5 * (Game.state.DAY_LEN / 24);
@@ -1785,7 +1844,7 @@
             s.stamina = s.staminaMax;
             s.mood = Math.min(s.moodMax, s.mood + 20);
             s.wetness = 0;
-            Game.ui.log('🌅 你在黎明中醒来，精神焕发！（+40 生命，体力全满）', 'good');
+            Game.ui.log(Game.i18n.t('log.shelter.wake'), 'good');
             Game.ui.fadeTo(0, null);
           });
           p.interactCd = 1.5;
@@ -1793,7 +1852,7 @@
         case 'spring': {
           p.stats.hydration = Math.min(p.stats.hydrationMax, p.stats.hydration + 38);
           p.interactCd = 1.2;
-          Game.ui.log('💧 喝下清冽的泉水。', 'good');
+          Game.ui.log(Game.i18n.t('log.feature.spring'), 'good');
           Game.sfx && Game.sfx.drink();
           Game.particles.spawn({ x: p.x, y: p.y - 6, kind: 'ring', size: 16, color: 'rgba(120,220,255,0.7)', life: 0.4 });
           break;
@@ -1808,7 +1867,7 @@
           addItem(gem, 1);
           f.regrowT = 60;
           addXp(4);
-          Game.ui.log(`💎 采到一颗${itemDef(gem).name}！（60 秒后再生）`, 'good');
+          Game.ui.log(Game.i18n.t('log.feature.gem', { name: itemName(gem) }), 'good');
           Game.sfx && Game.sfx.pick();
           Game.particles.spawn({ x: p.x, y: p.y - 10, kind: 'sparkle', size: 3, color: 'rgba(255,255,180,0.9)', vx: U.randRange(-6, 6), vy: -14, life: 0.7 });
           p.interactCd = 0.8;
@@ -1830,9 +1889,9 @@
             const got = U.pick(pool);
             addItem(got, big ? U.randInt(1, 2) : 1);
             addXp(2);
-            Game.ui.log(`🗑 你在垃圾堆里翻出了${itemDef(got).name}！`, 'good');
+            Game.ui.log(Game.i18n.t('log.feature.trash', { name: itemName(got) }), 'good');
           } else {
-            Game.ui.log('🗑 垃圾桶里空空如也……', 'info');
+            Game.ui.log(Game.i18n.t('log.feature.trashEmpty'), 'info');
           }
           Game.sfx && Game.sfx.pick();
           break;
@@ -1861,11 +1920,11 @@
         if (Math.random() < 0.5) addItem('fishbone');
         addXp(6);
         if (Game.state && Game.state.journey) Game.state.journey.fishCaught++;
-        Game.ui.log('🎣 三文鱼洄游中随手捞到一条！', 'catch');
+        Game.ui.log(Game.i18n.t('log.fish.run'), 'catch');
         Game.sfx && Game.sfx.catch();
       } else {
         /* 河边不能喝水——口渴只能找泉水（按 E 跟青色气味） */
-        Game.ui.log('🐟 岸边没有鱼……口渴的话去找清泉吧（青色气味）。', 'info');
+        Game.ui.log(Game.i18n.t('log.fish.none'), 'info');
         Game.sfx && Game.sfx.sniff();
       }
       p.interactCd = 1.0;
@@ -1878,13 +1937,13 @@
       if (Math.random() < 0.55) addItem('leaves', U.randInt(1, 2));
       else addItem('vines', U.randInt(1, 2));
       addXp(2);
-      Game.ui.log('🍂 在森林里捡到些材料。', 'info');
+      Game.ui.log(Game.i18n.t('log.feature.forest'), 'info');
       Game.sfx && Game.sfx.pick();
       p.interactCd = 1.0;
       return;
     }
 
-    Game.ui.log('😺 这里没什么可以互动的……', 'info');
+    Game.ui.log(Game.i18n.t('log.feature.nothing'), 'info');
     p.interactCd = 0.5;
   }
 
@@ -1897,7 +1956,7 @@
     p.inCave = true;
     p.x = st.caveExit.x;
     p.y = st.caveExit.y + 80;
-    Game.ui.log('🕳️ 你溜进凉爽的洞穴庇护所。', 'info');
+    Game.ui.log(Game.i18n.t('log.cave.enter'), 'info');
     Game.sfx && Game.sfx.cave();
     Game.ui.fadeTo(0.9, () => { Game.ui.fadeTo(0, null); });
   }
@@ -1907,12 +1966,13 @@
     p.inCave = false;
     Game.state.cave = false;
     p.x = p.outside.x; p.y = p.outside.y;
-    Game.ui.log('🌤️ 你回到荒野之中。', 'info');
+    Game.ui.log(Game.i18n.t('log.cave.exit'), 'info');
     Game.ui.fadeTo(0.9, () => { Game.ui.fadeTo(0, null); });
   }
 
   /* ------------------------------------------------------------ main tick */
   function update(dt, input) {
+    checkBossRespawn();   /* Boss 被击败后到时间自动复活 */
     updatePlayer(dt, input);
     for (const e of list) {
       if (!e.alive) continue;
@@ -1990,5 +2050,7 @@
     sneakFactor,
     difficultyK, scaledHp, scaledDmg, scaledXp, densityMul,
     SKILL_NAMES, SKILL_DEFS,
+    /* i18n 辅助函数：运行时翻译物品/技能/Boss/敌人名，供本模块与其他模块共用 */
+    itemName, itemDesc, skillName, skillDesc, bossName, typeName, i18nFallback,
   };
 })();

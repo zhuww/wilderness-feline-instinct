@@ -8,15 +8,19 @@
   const Game = (window.Game = window.Game || {});
   const U = Game.utils;
 
+  /* i18n 翻译助手：i18n.js 先于本文件加载，缺失时回退原 key */
+  const tr = (k, v) => (Game.i18n && typeof Game.i18n.t === 'function') ? Game.i18n.t(k, v) : k;
+
   const DAY_LEN = 720; /* real seconds per in-game day (12 min) */
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
+  let skipSave = false;   /* 新游戏流程：跳过 beforeunload 自动存档 */
 
   const state = {
-    seed: (Math.random() * 0xffffffff) >>> 0,
-    baseSeed: 0,
+    seed: (Math.random() * 0xffffffff) >>> 0,    baseSeed: 0,
     zone: 0,
     bossDefeated: { 0: false, 1: false, 2: false, 3: false },
+    bossRespawn: { 0: 0, 1: 0, 2: 0, 3: 0 },   /* Boss 重生时间戳（游戏秒，不入存档：重开即视为可重生） */
     sec: (8 * DAY_LEN) / 24,   /* start at 08:00 */
     day: 1,
     weather: 'clear',
@@ -104,8 +108,8 @@
       state.weather = r < 0.55 ? 'clear' : r < 0.85 ? 'rain' : 'mist';
     }
     state.weatherT = U.randRange(40, 90);
-    const meta = { clear: '☀️ 天空放晴了。', rain: '🌧️ 开始下雨了……', mist: '🌫️ 一阵轻雾弥漫开来。' };
-    Game.ui.log(meta[state.weather], 'info');
+    const meta = { clear: 'log.weather.clear', rain: 'log.weather.rain', mist: 'log.weather.mist' };
+    Game.ui.log(tr(meta[state.weather]), 'info');
     if (state.weather === 'rain') {
       Game.particles.wind.targetSpeed = Math.min(1.35, Game.particles.wind.targetSpeed + 0.4);
     } else {
@@ -142,25 +146,25 @@
     /* 工作台：打开制作面板（坐标单一来源 Game.render.CAVE_WORK，见中17） */
     if (U.dist2(p.x, p.y, Game.render.CAVE_WORK.x, Game.render.CAVE_WORK.y) < 80 * 80) {
       Game.ui.openCrafting && Game.ui.openCrafting();
-      Game.ui.log('🛠 你在工作台前准备制作物品。', 'craft');
+      Game.ui.log(tr('log.craft.workbench'), 'craft');
       return;
     }
     if (U.dist2(p.x, p.y, fire.x, fire.y) < 115 * 115) {
       if (Game.entities.countItem('salmon') > 0) {
         Game.entities.removeItem('salmon', 1);
         Game.entities.addItem('cooked_salmon');
-        Game.ui.log('🔥 在篝火上烤好了一条河鲑！', 'good');
+        Game.ui.log(tr('log.craft.salmon'), 'good');
         Game.sfx && Game.sfx.craft();
       } else if (p.stats.wetness > 5) {
         p.stats.wetness = 0;
-        Game.ui.log('🔥 你在火边烘干了毛发，暖烘烘的！', 'good');
+        Game.ui.log(tr('log.craft.dry'), 'good');
       } else {
-        Game.ui.log('🔥 篝火噼啪作响。（带条河鲑来烤）', 'info');
+        Game.ui.log(tr('log.craft.fireIdle'), 'info');
       }
       return;
     }
     if (U.dist2(p.x, p.y, bed.x, bed.y) < 95 * 95) {
-      Game.ui.log('😴 你在柔软的稻草床上蜷成一团……', 'info');
+      Game.ui.log(tr('log.bed.curl'), 'info');
       Game.sfx && Game.sfx.cave();
       Game.ui.fadeTo(1, () => {
         state.sec = 6.5 * (state.DAY_LEN / 24);
@@ -171,7 +175,7 @@
         s.mood = Math.min(s.moodMax, s.mood + 18);
         s.satiety = Math.min(s.satietyMax, s.satiety + 4);
         s.wetness = 0;
-        Game.ui.log('🌅 你在黎明中醒来，精神焕发。（+34 生命，体力全满）', 'good');
+        Game.ui.log(tr('log.bed.wake'), 'good');
         Game.ui.fadeTo(0, null);
       });
       return;
@@ -181,7 +185,7 @@
       Game.entities.exitCave();
       return;
     }
-    Game.ui.log('🏕️ 洞穴里安静又安全。（在火堆、床、工作台或出口旁按 F）', 'info');
+    Game.ui.log(tr('log.cave.idle'), 'info');
   };
 
   function updateCave(dt, inp) {
@@ -206,7 +210,7 @@
       p.stats.stamina = Math.min(p.stats.staminaMax, p.stats.stamina + dt * 7 * wetPenalty * (p.equipped.hat ? 1.25 : 1) * Game.entities.staminaRegenMult());
     }
     if (inp.interact) Game.entities.interact();
-    if (inp.pounce) Game.ui.log('😺 这里施展不开扑击！', 'info');
+    if (inp.pounce) Game.ui.log(tr('log.cave.noPounce'), 'info');
   }
 
   /* ------------------------------------------------------------- ambient */
@@ -274,6 +278,8 @@
 
   /* ------------------------------------------------------------- save/load */
   function save() {
+    /* 新游戏流程：跳过本次 beforeunload 自动存档，避免删除的存档被重新写回 */
+    if (skipSave) return;
     try {
       const p = Game.entities.player;
       const data = {
@@ -525,12 +531,49 @@
         state.weather = 'rain';
         state.weatherT = U.randRange(50, 100);
       }
-      Game.ui.log(`⛩ 你进入了【${Game.world.ZONE_INFO[to].name}】！`, 'good');
+      Game.ui.log(tr('log.zone.enter', { name: tr(Game.world.ZONE_INFO[to].key || ('zone.' + to)) }), 'good');
       Game.sfx && Game.sfx.cave();
       Game.ui.fadeTo(0, null);
     });
   }
   Game.transitionZone = transitionZone;
+
+  /* 开始全新游戏：彻底重置（等级/背包/伙伴/区域进度全部清零），不依赖 reload */
+  function startNewGame() {
+    try { localStorage.removeItem('wfissave'); } catch (e) { /* ignore */ }
+    const D = DAY_LEN;
+    state.seed = (Math.random() * 0xffffffff) >>> 0;
+    state.baseSeed = state.seed;
+    state.zone = 0;
+    state.bossDefeated = { 0: false, 1: false, 2: false, 3: false };
+    state.bossRespawn = { 0: 0, 1: 0, 2: 0, 3: 0 };
+    state.sec = (8 * D) / 24;   /* 回到第一天早上 08:00 */
+    state.day = 1;
+    state.weather = 'clear';
+    state.weatherT = 55;
+    state.cave = false;
+    state.journey = { preyCaught: 0, predatorsSlain: 0, challengesWon: 0, petsAdopted: 0, fishCaught: 0, xpTotal: 0 };
+    /* 结束进行中的挑战 */
+    if (Game.challenges && Game.challenges.current) Game.challenges.endChallenge();
+    /* 全新世界 + 全新玩家（1 级 / 空背包 / 无伙伴 / 装备清空） */
+    Game.world.generate(state.seed, 0);
+    Game.entities.init(0, null, false);
+    state.caveFire = Game.render.CAVE_FIRE;
+    state.caveBed = Game.render.CAVE_BED;
+    state.caveRack = Game.render.CAVE_RACK;
+    state.caveExit = Game.render.CAVE_EXIT;
+    const np = Game.entities.player;
+    state.cam.x = np.x - view.w / 2;
+    state.cam.y = np.y - view.h / 2;
+    /* 清掉一次性输入残留 */
+    input.sneak = false; input.pounce = false; input.sniff = false; input.groom = false; input.interact = false;
+    /* 刷新 UI */
+    Game.ui.refreshModals && Game.ui.refreshModals();
+    Game.ui.refreshBadges && Game.ui.refreshBadges();
+    Game.ui.updateHUD && Game.ui.updateHUD();
+    Game.ui.log(Game.i18n.t('log.boot.newJourney') || '🌱 新的旅程开始了！', 'good');
+  }
+  Game.startNewGame = startNewGame;
 
   /* -------------------------------------------------------------- boot */
   function boot() {
@@ -548,6 +591,19 @@
     snapPlayerWalkable();   /* 旧存档若卡在墙里，自动吸附出来 */
     Game.ui.init();
 
+    /* ---- i18n 初始化（只接线，不改其他逻辑）：
+           语言已在 i18n.js 加载时从 localStorage('wfi_lang') 恢复（默认 zh）；
+           这里在 DOM 就绪后填充页面静态文本，并注册语言切换按钮 ---- */
+    if (Game.i18n) {
+      Game.i18n.applyPage();
+      Game.i18n.updateLangButton && Game.i18n.updateLangButton();
+      const langBtn = document.getElementById('btn-lang');
+      if (langBtn) langBtn.addEventListener('click', () => {
+        Game.i18n.cycleLang();
+        Game.i18n.updateLangButton();
+      });
+    }
+
     let last = performance.now();
     function loop(now) {
       const dt = Math.min(0.05, (now - last) / 1000);
@@ -560,7 +616,7 @@
 
     window.addEventListener('beforeunload', save);
     setTimeout(() => {
-      Game.ui.log('🐱 你在荒野中醒来。相信你的本能——按 E 嗅探！', 'info');
+      Game.ui.log(tr('log.boot.wake'), 'info');
     }, 400);
   }
 

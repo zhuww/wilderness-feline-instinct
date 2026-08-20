@@ -10,6 +10,9 @@
   const W = Game.world;
   const T = W.T;
 
+  /* i18n 翻译助手：i18n.js 先于本文件加载（见 index.html 顺序），缺失时回退原 key */
+  const tr = (k, v) => (Game.i18n && typeof Game.i18n.t === 'function') ? Game.i18n.t(k, v) : k;
+
   const PAL = {
     base: {
       [T.MEADOW]: ['#7fb069', '#88b76f', '#78a963', '#82b26a'],
@@ -1297,13 +1300,15 @@
       ctx.beginPath(); ctx.arc(0, 0, 14 + pulse * 3, t * 2, t * 2 + Math.PI * 1.4); ctx.stroke();
       ctx.beginPath(); ctx.arc(0, 0, 9 + pulse * 2, -t * 2.4, -t * 2.4 + Math.PI * 1.2); ctx.stroke();
       ctx.restore();
-      /* 名称标签 */
+      /* 名称标签：区域名走 i18n（f.label 存 zone.X 的 key），背景宽度按文本自适应 */
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
+      const gLabel = tr(f.label || ('zone.' + f.to));
+      const gw = ctx.measureText(gLabel).width + 16;
       ctx.fillStyle = 'rgba(8,8,18,0.7)';
-      rr(ctx, fx - 48, fy - 30, 96, 15, 7); ctx.fill();
+      rr(ctx, fx - gw / 2, fy - 30, gw, 15, 7); ctx.fill();
       ctx.fillStyle = col;
-      ctx.fillText('⛩ ' + (f.label || ''), fx, fy - 19);
+      ctx.fillText(gLabel, fx, fy - 19);
     } else if (f.type === 'gemnode') {
       /* 宝石矿脉：三棱水晶簇，采完变暗淡 */
       const harvested = f.regrowT > 0;
@@ -1443,13 +1448,15 @@
         ctx.fillStyle = 'rgba(255,190,90,' + (0.35 * flick).toFixed(3) + ')';
         ctx.beginPath(); ctx.arc(fx, fy - 14, 3, 0, U.TAU); ctx.fill();
       }
-      /* 「可睡觉」标记 */
+      /* 「可睡觉」标记：避难所名称走 i18n，背景宽度按文本自适应 */
       ctx.textAlign = 'center';
       ctx.font = 'bold 10px sans-serif';
+      const sLabel = tr(hollow ? 'feature.shelter.hollow' : 'feature.shelter.alley');
+      const sw = ctx.measureText(sLabel).width + 16;
       ctx.fillStyle = 'rgba(8,8,18,0.7)';
-      rr(ctx, fx - 30, fy - 34, 60, 15, 7); ctx.fill();
+      rr(ctx, fx - sw / 2, fy - 34, sw, 15, 7); ctx.fill();
       ctx.fillStyle = hollow ? '#8f6fd8' : '#ffb45c';
-      ctx.fillText(hollow ? '🛏 树洞避难所' : '🛏 暗巷避难所', fx, fy - 23);
+      ctx.fillText(sLabel, fx, fy - 23);
     } else if (f.type === 'trashcan') {
       /* 小型垃圾桶 */
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -2365,6 +2372,8 @@
   }
 
   /* ------------------------------------------------------------ bosses */
+  /* Boss 类型 → 区域索引：Boss 名 i18n key 按区域编号（boss.0..boss.3） */
+  const BOSS_ZONE = { boar: 0, kid: 1, wolf: 2, cobra: 3 };
   function drawBoss(ctx, e, view) {
     const cam = view.cam;
     const sx = e.x - cam.x, sy = e.y - cam.y;
@@ -2385,14 +2394,17 @@
     } else if (e.bt === 'kid') {
       drawKid(ctx, sx, sy, e, view);
     }
-    /* 名字 + 血条（眼镜蛇更高，标签上移避免被身体遮挡） */
+    /* 名字 + 血条（眼镜蛇更高，标签上移避免被身体遮挡）
+       Boss 名走 i18n：t('boss.<区域>')；名字背景宽度按 measureText 自适应（长语言不溢出） */
     const lab = e.bt === 'cobra' ? -68 : -46;
+    const bName = tr('boss.' + (BOSS_ZONE[e.bt] !== undefined ? BOSS_ZONE[e.bt] : 0));
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
+    const nw = ctx.measureText(bName).width + 16;
     ctx.fillStyle = 'rgba(8,8,18,0.72)';
-    rr(ctx, sx - 44, sy + lab, 88, 18, 9); ctx.fill();
+    rr(ctx, sx - nw / 2, sy + lab, nw, 18, 9); ctx.fill();
     ctx.fillStyle = '#ff6b6b';
-    ctx.fillText(e.name, sx, sy + lab + 13);
+    ctx.fillText(bName, sx, sy + lab + 13);
     ctx.fillStyle = 'rgba(8,8,18,0.7)';
     rr(ctx, sx - 42, sy + lab + 18, 84, 6, 3); ctx.fill();
     ctx.fillStyle = '#e04030';
@@ -2576,29 +2588,29 @@
       const fx = (f.tx + 0.5) * W.TILE - cam.x;
       const fy = (f.ty + 0.5) * W.TILE - cam.y - 34;
       if (fx > -50 && fx < view.w + 50 && fy > -50 && fy < view.h + 50) {
-        const lbl = f.type === 'gate' ? ('前往' + f.label)
-          : f.type === 'berry' ? '吃浆果'
-            : f.type === 'catnip' ? '拾取'
-              : f.type === 'herbs' ? '拾取'
-                : f.type === 'spring' ? '喝水'
-                  : f.type === 'gemnode' ? '采集宝石'
-                    : f.type === 'cactus' ? '采摘'
-                      : f.type === 'dragonherb' ? '采摘'
-                        : f.type === 'reishi' ? '采摘'
-                          : f.type === 'vine' ? '割藤条'
-                            : f.type === 'shelter' ? '睡觉'
-                              : f.type === 'trashcan' || f.type === 'dumpster' ? '翻垃圾'
-                                : '进入';
+        const lbl = f.type === 'gate' ? tr('feature.prompt.gate', { name: tr(f.label || ('zone.' + f.to)) })
+          : f.type === 'berry' ? tr('feature.prompt.berry')
+            : f.type === 'catnip' ? tr('feature.prompt.pickup')
+              : f.type === 'herbs' ? tr('feature.prompt.pickup')
+                : f.type === 'spring' ? tr('feature.prompt.spring')
+                  : f.type === 'gemnode' ? tr('feature.prompt.gem')
+                    : f.type === 'cactus' ? tr('feature.prompt.harvest')
+                      : f.type === 'dragonherb' ? tr('feature.prompt.harvest')
+                        : f.type === 'reishi' ? tr('feature.prompt.harvest')
+                          : f.type === 'vine' ? tr('feature.prompt.vine')
+                            : f.type === 'shelter' ? tr('feature.prompt.sleep')
+                              : f.type === 'trashcan' || f.type === 'dumpster' ? tr('feature.prompt.trash')
+                                : tr('feature.prompt.enter');
         drawFPrompt(ctx, fx, fy, lbl);
       }
     } else if (Game.world.isNearWater(p.x, p.y)) {
       /* 水边：只能捞鱼，口渴请找泉水 */
-      drawFPrompt(ctx, px, py - 42, '捞鱼');
+      drawFPrompt(ctx, px, py - 42, tr('feature.prompt.fish'));
     }
     /* 附近的猫 */
     for (const c of Game.entities.companions) {
       if (U.dist2(c.x, c.y, p.x, p.y) < 74 * 74) {
-        drawFPrompt(ctx, c.x - cam.x, c.y - cam.y - 46, '抚摸');
+        drawFPrompt(ctx, c.x - cam.x, c.y - cam.y - 46, tr('feature.prompt.pet'));
         break;
       }
     }
@@ -2880,27 +2892,27 @@
       night: true, fear: 1, blink: p.blink, wet: p.stats.wetness > 55, hurt: p.hurtT > 0,
     });
 
-    /* interaction prompts */
+    /* interaction prompts（文案走 i18n） */
     const near = (ax, ay, bx, by, r) => U.dist2(ax, ay, bx, by) < r * r;
     if (near(p.x, p.y, CAVE_WORK.x, CAVE_WORK.y, 80)) {
       ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(200,230,190,0.95)';
-      ctx.fillText('F — 制作物品', toSX(CAVE_WORK.x), toSY(CAVE_WORK.y) - 34);
+      ctx.fillText(tr('feature.prompt.workbench'), toSX(CAVE_WORK.x), toSY(CAVE_WORK.y) - 34);
     }
     if (near(p.x, p.y, CAVE_FIRE.x, CAVE_FIRE.y, 115)) {
       ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(255,220,160,0.95)';
-      ctx.fillText('F — 做饭 / 烘干', toSX(CAVE_FIRE.x), toSY(CAVE_FIRE.y) - 44);
+      ctx.fillText(tr('feature.prompt.fire'), toSX(CAVE_FIRE.x), toSY(CAVE_FIRE.y) - 44);
     }
     if (near(p.x, p.y, CAVE_BED.x, CAVE_BED.y, 95)) {
       ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(255,220,160,0.95)';
-      ctx.fillText('F — 睡到天亮', toSX(CAVE_BED.x), toSY(CAVE_BED.y) - 44);
+      ctx.fillText(tr('feature.prompt.bed'), toSX(CAVE_BED.x), toSY(CAVE_BED.y) - 44);
     }
     if (near(p.x, p.y, CAVE_EXIT.x, CAVE_EXIT.y, 135)) {
       ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(200,220,255,0.95)';
-      ctx.fillText('F — 离开洞穴', toSX(CAVE_EXIT.x), toSY(CAVE_EXIT.y) + 52);
+      ctx.fillText(tr('feature.prompt.exit'), toSX(CAVE_EXIT.x), toSY(CAVE_EXIT.y) + 52);
     }
     drawVignette(ctx, view);
     if (view.fade > 0) {
