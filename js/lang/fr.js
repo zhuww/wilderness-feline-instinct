@@ -272,7 +272,7 @@ Game.i18n.dicts.fr = {
   'skill.angler.name': 'Queue de pêcheur',
   'skill.angler.desc': 'La pêche réussit toujours',
   'skill.swift.name': 'Griffes rapides',
-  'skill.swift.desc': 'Vitesse de déplacement +10%, régénération d\'endurance +25%',
+  'skill.swift.desc': 'Par niveau : vitesse +10 % (max +30 %), régénération d\'endurance +8 %',
   'skill.thick.name': 'Fourrure épaisse',
   'skill.thick.desc': 'Par niveau : dégâts subis -12% (max -47%)',
   'skill.camo.name': 'Camouflage de feuilles',

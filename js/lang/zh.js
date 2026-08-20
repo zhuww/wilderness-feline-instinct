@@ -272,7 +272,7 @@ Game.i18n.dicts.zh = {
   'skill.angler.name': '渔夫之尾',
   'skill.angler.desc': '钓鱼必定成功',
   'skill.swift.name': '疾风快爪',
-  'skill.swift.desc': '移动速度 +10%，体力回复 +25%',
+  'skill.swift.desc': '每级：移动速度 +10%（满级 +30%）、体力回复 +8%',
   'skill.thick.name': '厚实毛皮',
   'skill.thick.desc': '每级：受到的伤害 -12%（满级 -47%）',
   'skill.camo.name': '树叶伪装',

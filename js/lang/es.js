@@ -272,7 +272,7 @@ Game.i18n.dicts.es = {
   'skill.angler.name': 'Cola de Pescador',
   'skill.angler.desc': 'La pesca siempre tiene éxito',
   'skill.swift.name': 'Garras Veloces',
-  'skill.swift.desc': 'Velocidad de movimiento +10%, regeneración de resistencia +25%',
+  'skill.swift.desc': 'Por nivel: velocidad +10 % (máx. +30 %), regeneración de resistencia +8 %',
   'skill.thick.name': 'Pelaje Grueso',
   'skill.thick.desc': 'Por nivel: daño recibido -12% (máx. -47%)',
   'skill.camo.name': 'Camuflaje de Hojas',

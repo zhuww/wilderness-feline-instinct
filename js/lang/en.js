@@ -272,7 +272,7 @@ Game.i18n.dicts.en = {
   'skill.angler.name': 'Angler\'s Tail',
   'skill.angler.desc': 'Fishing always succeeds',
   'skill.swift.name': 'Swift Claws',
-  'skill.swift.desc': 'Move speed +10%, stamina regen +25%',
+  'skill.swift.desc': 'Per level: move speed +10% (max +30%), stamina regen +8%',
   'skill.thick.name': 'Thick Fur',
   'skill.thick.desc': 'Per level: damage taken -12% (max -47%)',
   'skill.camo.name': 'Leaf Camouflage',

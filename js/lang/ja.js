@@ -272,7 +272,7 @@ Game.i18n.dicts.ja = {
   'skill.angler.name': '釣り人の尾',
   'skill.angler.desc': '釣りが必ず成功する',
   'skill.swift.name': '疾風の爪',
-  'skill.swift.desc': '移動速度+10%、スタミナ回復+25%',
+  'skill.swift.desc': 'レベルごと：移動速度+10%（最大+30%）、スタミナ回復+8%',
   'skill.thick.name': '分厚い毛皮',
   'skill.thick.desc': 'レベルごと：受けるダメージ-12%（最大-47%）',
   'skill.camo.name': '葉っぱのカモフラージュ',

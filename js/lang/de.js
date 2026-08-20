@@ -272,7 +272,7 @@ Game.i18n.dicts.de = {
   'skill.angler.name': 'Anglerschwanz',
   'skill.angler.desc': 'Angeln gelingt immer',
   'skill.swift.name': 'Blitzkrallen',
-  'skill.swift.desc': 'Bewegungstempo +10%, Ausdauer-Regeneration +25%',
+  'skill.swift.desc': 'Pro Stufe: Tempo +10 % (max. +30 %), Ausdauer-Regeneration +8 %',
   'skill.thick.name': 'Dickes Fell',
   'skill.thick.desc': 'Pro Stufe: erlittener Schaden -12% (max. -47%)',
   'skill.camo.name': 'Blättertarnung',

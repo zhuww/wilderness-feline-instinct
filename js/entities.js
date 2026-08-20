@@ -46,7 +46,7 @@
     dragon_potion: { name: '龙血药剂', icon: '🧫', heal: 60, desc: '沸腾的龙血精华，瞬间恢复 60 点生命。' },
     /* skill books — read them from the satchel to learn the skill forever */
     book_hunter: { name: '猎手本能', icon: '📘', book: true, skill: 'hunter', desc: '扑击伤害 +15%，捕捉范围更大。' },
-    book_swift: { name: '疾风快爪', icon: '📗', book: true, skill: 'swift', desc: '移动速度 +10%，体力回复 +25%。' },
+    book_swift: { name: '疾风快爪', icon: '📗', book: true, skill: 'swift', desc: '每级：移动速度 +10%（满级 +30%）、体力回复 +8%。' },
     book_thick: { name: '厚实毛皮', icon: '📙', book: true, skill: 'thick', desc: '受到的伤害 -25%。' },
     book_keen: { name: '敏锐嗅觉', icon: '📕', book: true, skill: 'keen', desc: '嗅探范围 +40%，气味更浓密。' },
     book_brave: { name: '无畏之心', icon: '📔', book: true, skill: 'brave', desc: '心情上限 +25%，挑战奖励 +50%。' },
@@ -720,7 +720,7 @@
     leap: { name: '飞扑袭杀', max: 3, desc: '每级：扑击距离 +20%（满级 +60%）' },
     keen: { name: '敏锐嗅觉', max: 1, desc: '嗅探范围 +40%，气味更浓密' },
     angler: { name: '渔夫之尾', max: 1, desc: '钓鱼必定成功' },
-    swift: { name: '疾风快爪', max: 1, desc: '移动速度 +10%，体力回复 +25%' },
+    swift: { name: '疾风快爪', max: 3, desc: '每级：移动速度 +10%（满级 +30%）、体力回复 +8%' },
     thick: { name: '厚实毛皮', max: 5, desc: '每级：受到的伤害 -12%（满级 -47%）' },
     camo: { name: '树叶伪装', max: 1, desc: '高草丛隐匿效果翻倍，潜行更省体力' },
     vitality: { name: '活力充盈', max: 5, desc: '每级：体力恢复速度 +30%（满级 +150%）' },
@@ -781,7 +781,7 @@
   /* 体力恢复倍率：等级成长（每级 +4%，上限 +140%）+ 活力充盈（每级 +30%）+ 疾风快爪（+25%） */
   function staminaRegenMult() {
     if (!player) return 1;
-    return Math.min(2.4, 1 + (player.level - 1) * 0.04 + skillLevel('vitality') * 0.3 + (hasSkill('swift') ? 0.25 : 0));
+    return Math.min(2.4, 1 + (player.level - 1) * 0.04 + skillLevel('vitality') * 0.3 + skillLevel('swift') * 0.08);
   }
   /* 制作倍率：能工巧匠每级 +20% */
   function craftMult() {
@@ -1092,7 +1092,7 @@
     const dogChase = Game.challenges && Game.challenges.current && Game.challenges.current.type === 'dog' &&
       (Game.challenges.entities || []).some((e) => e.kind === 'dog' && e.alive && e.state === 'chase');
     /* Swift Paws: +10% speed */
-    const spdBase = (sneaking ? p.sneakSpeed : p.speed) * (hasSkill('swift') ? 1.10 : 1);
+    const spdBase = (sneaking ? p.sneakSpeed : p.speed) * (1 + skillLevel('swift') * 0.10);
     /* 沼泽泥地拖慢脚步 */
     const swampSlow = W.terrainAt(p.x, p.y) === W.T.SWAMP ? 0.55 : 1;
     const spd = spdBase * swampSlow * (dogChase ? 1.18 : 1);

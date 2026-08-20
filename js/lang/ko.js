@@ -272,7 +272,7 @@ Game.i18n.dicts.ko = {
   'skill.angler.name': '낚시꾼의 꼬리',
   'skill.angler.desc': '낚시가 항상 성공',
   'skill.swift.name': '날렵한 발톱',
-  'skill.swift.desc': '이동 속도 +10%, 스태미나 회복 +25%',
+  'skill.swift.desc': '레벨당: 이동 속도 +10% (최대 +30%), 스태미나 회복 +8%',
   'skill.thick.name': '두꺼운 털',
   'skill.thick.desc': '레벨당: 받는 피해 -12% (최대 -47%)',
   'skill.camo.name': '잎사귀 위장',
