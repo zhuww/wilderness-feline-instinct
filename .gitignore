@@ -9,3 +9,7 @@ node_modules/
 # AgentTeams runtime dirs
 .agent-teams/
 _*.js
+
+# build artifacts
+dist/
+*.zip
