@@ -22,8 +22,8 @@
   'use strict';
   const Game = (window.Game = window.Game || {});
 
-  /* 支持的语言顺序（cycleLang 按此循环） */
-  const LANGS = ['zh', 'en', 'fr', 'es', 'de', 'ja', 'ko', 'ru'];
+  /* 支持的语言顺序（cycleLang 按此循环；en 为第一顺位，zh 第二） */
+  const LANGS = ['en', 'zh', 'fr', 'es', 'de', 'ja', 'ko', 'ru'];
   const STORE_KEY = 'wfi_lang';
   /* 语言显示名（langName 用） */
   const NAMES = {
@@ -40,15 +40,15 @@
   /* 字典容器：zh 为基准语言，其余由 lang/ 文件填充 */
   const dicts = { zh: {}, en: {}, fr: {}, es: {}, de: {}, ja: {}, ko: {}, ru: {} };
 
-  /* 当前语言：从 localStorage 恢复，非法值或读取失败回退 zh */
-  let lang = 'zh';
+  /* 当前语言：从 localStorage 恢复，非法值或读取失败回退 en（默认英文，中文第二顺位兜底） */
+  let lang = 'en';
   try {
     const saved = localStorage.getItem(STORE_KEY);
     if (saved && LANGS.indexOf(saved) !== -1) lang = saved;
   } catch (e) { /* storage unavailable */ }
 
   /* --------------------------------------------------------------- 翻译 */
-  /* 查找顺序：当前语言 → 中文（基准兜底）→ 原 key 本身 */
+  /* 查找顺序：当前语言 → 中文（第二顺位兜底）→ 原 key 本身 */
   function t(key, vars) {
     const dict = dicts[lang] || {};
     let s = (dict[key] !== undefined && dict[key] !== null)
