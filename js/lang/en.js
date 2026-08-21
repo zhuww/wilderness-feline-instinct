@@ -17,7 +17,7 @@ Game.i18n.dicts.en = {
   'ui.hud.compass': 'Instinct',
   'ui.hud.xp': 'XP',
   'ui.hud.level': 'Lv {n}',                                 /* 插值: {n} */
-  'ui.hud.summon.none': '📣 No partner cat',
+  'ui.hud.summon.none': '📣 No pet cat',
   'ui.hud.summon.ready': '📣 Ready (R)',
   'ui.hud.summon.cd': '📣 {n}s',                            /* 插值: {n} */
   'ui.hud.bossDefault': '👹 Boss',
@@ -77,7 +77,7 @@ Game.i18n.dicts.en = {
 
   'ui.confirm.reset': 'Start a new game? Your current save will be wiped.',
   'ui.confirm.resetTitle': '🆕 Start a New Game',
-  'ui.confirm.resetDesc': 'All progress (level, skills, items, companions, zone progress) will be wiped, and a brand-new world will be generated. This cannot be undone!',
+  'ui.confirm.resetDesc': 'All progress (level, skills, items, pets, zone progress) will be wiped, and a brand-new world will be generated. This cannot be undone!',
   'ui.confirm.ok': '🎮 New Game',
   'ui.confirm.cancel': 'Cancel',
 
@@ -346,7 +346,7 @@ Game.i18n.dicts.en = {
   'guide.controls.sniff': '<b class="text-slate-200">E</b> — Sniff (scent trails)',
   'guide.controls.groom': '<b class="text-slate-200">Q</b> — Groom fur (+mood)',
   'guide.controls.interact': '<b class="text-slate-200">F</b> — Interact / Pet / Fish',
-  'guide.controls.summon': '<b class="text-slate-200">R</b> — Summon partner cat (5 min cooldown)',
+  'guide.controls.summon': '<b class="text-slate-200">R</b> — Summon pet cat (5 min cooldown)',
   'guide.controls.panels': '<b class="text-slate-200">I / B / G</b> — Open panels',
   'guide.controls.close': '<b class="text-slate-200">Esc</b> — Close panel',
   /* ---- 👃 嗅觉本能 ---- */
@@ -503,7 +503,7 @@ Game.i18n.dicts.en = {
   'log.perk.hunt': '🐈 {name} will now hunt by your side (+damage)!', /* 插值: {name} */
   'log.summon.end': '🐈 {name} finished fighting and returns to you.', /* 插值: {name} */
   'log.summon.cd': '📣 Summon on cooldown ({n}s)',                    /* 插值: {n} */
-  'log.summon.none': '😿 You have no partner cat — adopt a stray first!',
+  'log.summon.none': '😿 You have no pet cat — adopt a stray first!',
   'log.summon.ok': '📣 {name} answers the call and fights by your side! (cooldown {n} min)', /* 插值: {name} {n} */
   'log.summon.strike': '🐈 {name} pounces on the enemy! ({dmg} damage)', /* 插值: {name} {dmg} */
   'log.challenge.rival.start': '⚠️ Rival cats are invading your territory — pounce to drive them off!',
