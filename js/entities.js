@@ -1569,14 +1569,20 @@
       return;
     }
 
-    /* follow when friendly enough */
-    if ((c.adopted || c.friendship >= 25) && d > 95) c.follow = true;
-    else if (d < 60) c.follow = false;
+    /* 伙伴跟随：保持距离（约 110px），不贴脸遮挡；玩家主动靠近（<95px）时猫原地等待便于互动 */
+    if ((c.adopted || c.friendship >= 25) && d > 135) c.follow = true;
+    else if (d < 95) c.follow = false;
 
     if (c.follow) {
       c.state = 'follow';
-      c.dir = U.angleLerp(c.dir, Math.atan2(p.y - c.y, p.x - c.x), dt * 4);
-      moveEntity(c, Math.cos(c.dir) * c.speed * dt, Math.sin(c.dir) * c.speed * dt);
+      /* 跟到 110px 外即停下，不追到玩家脸上 */
+      if (d > 110) {
+        c.dir = U.angleLerp(c.dir, Math.atan2(p.y - c.y, p.x - c.x), dt * 4);
+        moveEntity(c, Math.cos(c.dir) * c.speed * dt, Math.sin(c.dir) * c.speed * dt);
+      }
+    } else if (d < 95) {
+      /* 玩家在身边：原地等待（不 wander 乱飘，方便主动互动） */
+      c.state = 'idle';
     } else {
       c.state = 'wander';
       if (c.wanderT <= 0) { c.dir = Math.random() * U.TAU; c.wanderT = U.randRange(2, 5); }
@@ -1763,7 +1769,8 @@
     if (p.inCave) { Game.state.caveInteract && Game.state.caveInteract(); p.interactCd = 0.6; return; }
 
     /* 1) a nearby stray cat always wins — quick pet with F */
-    let bestC = null, bd = 80 * 80;
+    /* 1) 抚摸需主动贴近（56px）；伙伴猫保持 70px 跟随距离，因此按 F 不会误触抚摸、可正常互动 */
+    let bestC = null, bd = 56 * 56;
     for (const c of companions) {
       const d = U.dist2(p.x, p.y, c.x, c.y);
       if (d < bd) { bd = d; bestC = c; }
