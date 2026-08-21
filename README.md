@@ -1,105 +1,108 @@
 # 🐱 Wilderness Feline Instinct: Siamese Cat Survival
 
-A complete, single-page 2D top-down wilderness survival game — HTML5 Canvas
-rendering with a Tailwind-styled HUD. No build step, no dependencies:
-open **`index.html`** in any modern browser (Chrome / Edge / Firefox) and play.
+A complete, single-page **2D top-down wilderness survival game** built with **vanilla HTML5 Canvas** — no game engine, no frameworks, no image assets. Every sprite, tile, weather effect and particle is drawn procedurally in code. Fully self-contained: works offline by double-clicking `index.html`.
 
-> Tailwind CSS loads from the CDN when online; an embedded fallback stylesheet
-> keeps the full UI usable offline.
+**[▶ Play it online](https://zhuww.github.io/wilderness-feline-instinct/)** (GitHub Pages)
 
-## How to run
+---
 
-- **Double-click `index.html`** (works from `file://`), or
-- serve the folder, e.g. `npx serve .` or `python -m http.server 8080`.
+## ✨ Highlights
 
-## Controls
+- **8 languages** — 中文 / English / Français / Español / Deutsch / 日本語 / 한국어 / Русский, switchable live with the 🌐 button (English is the default, Chinese is the fallback). Your choice is saved.
+- **4 explorable zones** — Wild Meadow → City District → Dry Wasteland → Dark Forest, connected by portals (no level gates — travel freely).
+- **Final boss: the King Cobra** 🐍 — spits a green venom beam (telegraphed by coiling), delivers a long-range pounce (30 dmg + poison 5 HP / 2 s), and bites with venom. Large, intimidating, and it **revives 4 minutes after defeat** so you can farm it again.
+- **5-branch skill tree** — 🎯 Hunting, 🛡️ Survival, 🐈 Companion, 💨 Dodge, 🔨 Crafting. Repeatable skills (Hunter, Leap, Thick Fur, Vitality, Dodge, Craftsman) go up to Lv 3–5; skill points only come from leveling, so builds matter.
+- **Dynamic difficulty** — monsters, bosses and challenges scale with your level (each zone has a base difficulty: Meadow < City < Wasteland < Forest). Enemies respawn gradually, so there is always something to hunt.
+- **Deep survival systems** — hunger / thirst / stamina / mood / fur wetness (rain soaks you over ~3 minutes, faster in the dark forest; full soak drains mood). Sleep in cave beds, city alleys or forest tree-holes.
+- **Gems & advanced gear** — collect rubies/sapphires/jade from volcanoes and the forest to craft Flame Ruby Pendant (+40% dmg), Sapphire Star (crit +12%), Jade Charm (−6 dmg), Vine Armor (waterproof, −7 dmg), Stone Claw (+8 dmg) and Dragon's Blood Potion (+60 HP).
+- **Pet companions** — find stray cats, feed them to 60 ♥ friendship and adopt them. They follow you, warn of danger, assist in hunting, and can be **summoned into battle** (R).
+- **Periodic challenges** — 9 random events: rival cats, dog chases, thunderstorm, salmon run, viper swarm, wolf pack, boar stampede, hawk dive, dense fog.
+- **Dynamic weather & day/night** — 12-minute day cycle, rain (rarer in the wasteland, more common in the forest), mist, stars, fireflies, wind-blown leaves, bokeh depth-of-field.
+- **Full game flow** — leveling, XP, permanent stat growth, dynamic loot, auto-save, and a 🆕 **New Game** button that truly wipes everything (level, skills, inventory, companions, zone progress) and starts a fresh world.
+
+## 🎮 Controls
 
 | Key | Action |
 | --- | --- |
 | `WASD` / Arrows | Move |
-| `Shift` | Sneak (crouch — hides you in tall grass, shrinks predator detection) |
-| `Space` | Pounce (leap attack to catch prey or strike predators) |
+| `Shift` | Sneak (hide in tall grass, shrink detection range) |
+| `Space` | Pounce (leap attack; with the **Leap** skill, jump much farther) |
 | `E` | Sniff (wind-guided scent streams) |
-| `Q` | Groom (+Mood, sparkles) |
-| `F` | Interact (gather / drink / fish / pet strays / enter cave / cook / sleep) |
+| `Q` | Groom (+Mood) |
+| `F` | Interact (gather / drink / fish / pet strays / enter cave / sleep / craft) |
+| `R` | Summon your companion cat |
 | `I` / `B` / `G` | Inventory & Crafting / Cat Friends / Survival Guide |
 | `Esc` | Close sheets |
+| 🌐 | Cycle language (English → 中文 → Français → Español → Deutsch → 日本語 → 한국어 → Русский) |
+| 🆕 | Start a new game (full reset) |
 
 Touch devices get an on-screen virtual joystick + action buttons automatically.
 
-## Scent instinct
+## 🧭 Scent Instinct
 
 Press `E` to read the wind: colored particle streams flow from whatever is near.
 
 - 🩵 **Cyan** — clean water springs
 - 🟡 **Gold** — prey (mice, river salmon, grasshoppers)
 - 💗 **Pink** — friendly stray cats
-- ❤️ **Crimson** — predators (wild boars, vipers, foxes)
+- ❤️ **Crimson** — predators (boars, vipers, foxes, monkeys, crocodiles)
 
-The **Instinct compass** in the HUD always points at the nearest source of each
-scent.
+The **Instinct compass** in the HUD always points at the nearest source of each scent.
 
-## Systems
+## 🏞️ Zones & Bosses
 
-- **Vitals** — HP, Satiety, Hydration, Stamina, Mood, Fur Wetness. Rain soaks
-  your fur and slows stamina regen; wear a *Leaf Rain Hat* or dry off by the
-  cave campfire.
-- **Day / night & weather** — a 12-minute day cycle, dusk/dawn glow, stars,
-  fireflies, rain streaks, drifting mist, and wind-blown leaves.
-- **Hunting & combat** — sneak through tall grass, pounce with claws out,
-  catch mice/salmon/grasshoppers, fight boars, foxes and vipers. A pounce can
-  leap **across narrow streams** (but landing in deep water soaks you).
-- **Cave shelter** — campfire cooking & drying, a straw bed that heals you
-  through the night.
-- **Crafting** — Leaf Rain Hat, Fishbone Collar, Dried Catnip, Herb Salve.
-- **Summon companion** — after adopting a cat, press **R** to summon your best
-  friend into battle: it hunts nearby predators for 25 seconds and boosts your
-  damage. Cooldown: **5 minutes** (shown in the HUD).
-- **Pet companions** — find stray cats (pink scent), pet them with `F` or use
-  the floating cat action menu to **Feed** them (salmon / mouse, +22 ♥) until
-  friendship hits **60 ♥**, then **Adopt** them as your pet: red collar, they
-  follow you everywhere, and unlock perks — mood aura → danger warnings (70 ♥)
-  → hunt assist (90 ♥) — plus they bring you small gifts. See progress in the
-  Cat Friends sheet (pets / strays sections).
-- **Periodic challenges** — every 60–120 seconds the wilderness throws a
-  random event at you (watch the banner):
-  - 🐈‍⬛ **Territory invasion** — rival cats claim your land; pounce them twice
-    each to chase them off, or they steal your food and sour your mood.
-  - 🐕 **Dog chase** — a wild dog hunts you; you run faster on adrenaline, but
-    it's quicker — sneak in tall grass to lose it, stun it with a pounce, or
-    escape into a cave. Two bites and the dog wins.
-  - ⛈️ **Thunderstorm** — lightning warns with a glowing circle before it
-    strikes; get out of the blast radius or hide in the cave.
-  - 🐟 **Salmon run** — every cast at the stream catches a salmon.
-  - 🐍 **Viper swarm** — six vipers surround you; crush them with pounces.
-  - 🐺 **Wolf pack** — 2–3 wolves hunt you; fight them off (two pounces each)
-    or flee into a cave. Three bites and you lose.
-  - 🐗 **Boar stampede** — charging boars tear across the land; dodge them!
-  - 🦅 **Hawk dive** — a hawk circles overhead and dives at its shadow — move!
-  - 🌫️ **Dense fog** — visibility drops and predators sniff you out; reach the
-    glowing beacon (cave or spring) before time runs out.
-  Winning challenges grants XP, mood/stamina rewards and a chance at skill books.
-- **Growth & skills** — every action earns XP (catching prey, fishing,
-  gathering, petting cats, winning challenges); level up to raise max HP,
-  Stamina and Mood. **Skill points** (from level-ups, challenge wins and boss
-  kills) are spent freely in the 📈 **Growth** panel across **three branches**:
-  🎯 Hunting, 🛡️ Survival and 🐈 Companion — your build is your choice.
-- **Zones & bosses** — portals at the map edges lead to new regions with level
-  gates: **City District** (Lv 5, boss: slingshot kid with ranged stones),
-  **Dry Wasteland** (Lv 10, boss: fast dire wolf) and **Dark Forest** (Lv 15,
-  boss: pouncing great serpent). The starting meadow hides a charging giant
-  boar. Each defeated boss grants big XP + 3 skill points; progress is saved.
-- **Auto-save** — progress persists in `localStorage` (↻ button for a new game).
+| Zone | Description | Boss (bottom-right, guards next portal) |
+| --- | --- | --- |
+| Wild Meadow | Starting area: rivers, caves, berries, catnip | Giant Boar (charge) |
+| City District | Linear street with 4 architectural styles (NYC / Sydney / Kunming / Beijing), trash cans, stray dogs, alley shelters | Slingshot Kid (ranged stones) |
+| Dry Wasteland | Volcano craters with impassable lava, cacti, dragon herbs, gems; scarce water, almost no rain | Dire Wolf (fast) |
+| Dark Forest | A long road walled by impassable trees; monkeys & crocodiles, rain-prone, reishi, vine, tree-hole shelters | **King Cobra** (venom beam + long pounce) |
 
-## Files
+## 🖥️ How to run
+
+- **Play online**: https://zhuww.github.io/wilderness-feline-instinct/
+- **Locally**: double-click `index.html` (works from `file://`, fully offline — Tailwind CSS is bundled locally, zero CDN dependencies), or
+  ```bash
+  node server.js        # serves at http://127.0.0.1:8080 (no-cache for development)
+  ```
+
+## 📦 Deploy to any static host
+
+The game is a pure static site — upload the contents of the `dist/` folder (or `wilderness-cat-website.zip`) to GitHub Pages, Netlify, Vercel, nginx, or any static file server. No backend required.
+
+## 🛠️ Tech stack
+
+| Layer | Technology |
+| --- | --- |
+| Rendering | HTML5 Canvas 2D (procedural art, offscreen chunk caching) |
+| UI / HUD | DOM + Tailwind CSS (bundled locally as `js/tailwind.js`) |
+| Localization | Hand-rolled i18n: `js/i18n.js` + 8 dictionaries in `js/lang/` |
+| Persistence | `localStorage` (save key `wfissave`, language key `wfi_lang`) |
+| Runtime | Vanilla JS on `window.Game` — 17 scripts, no build step, no dependencies |
+
+## 📁 Project structure
 
 ```
-index.html          page shell, HUD, modals, touch UI, fallback styles
-js/utils.js         math, seeded RNG, value-noise / fBm
-js/world.js         procedural wilderness generator
-js/particles.js     scent streams, sparkles, leaves, mist, bokeh
-js/entities.js      player cat, prey, predators, companions, inventory, crafting
-js/render.js        canvas renderer: tiles, Siamese cat art, day/night, DOF
-js/ui.js            HUD, compass, action log, modals, touch controls, SFX
-js/main.js          game loop, input, weather, camera, cave, save/load
+index.html            page shell, HUD, modals, touch UI, bundled styles
+js/
+  tailwind.js         Tailwind CSS runtime (local, offline-capable)
+  utils.js            math, seeded RNG, value-noise / fBm
+  i18n.js             multi-language framework (t/setLang/cycleLang/applyPage)
+  lang/               zh en fr es de ja ko ru dictionaries (496 keys each)
+  world.js            procedural world generator (4 zones, gates, features)
+  particles.js        scent streams, sparkles, leaves, mist, bokeh
+  entities.js         player, prey, predators, bosses, companions, items, skills
+  render.js           canvas renderer: tiles, cat art, day/night, effects
+  ui.js               HUD, compass, action log, modals, touch controls
+  challenges.js       periodic challenge events
+  main.js             game loop, input, weather, camera, cave, save/new game
 ```
+
+## 💾 Save & New Game
+
+- Progress auto-saves to `localStorage` (key `wfissave`).
+- The 🆕 button opens a confirmation dialog, then **fully resets** the game: level, skills, inventory, equipment, companions, zone progress, time — a brand-new world from level 1 (language preference is kept).
+
+## 📜 License
+
+All art, code and audio (procedurally generated) are original — no external assets, no copyright risk.
