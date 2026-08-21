@@ -22,6 +22,14 @@
   .modal-panel { background: rgba(14,16,30,0.92); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(14px); box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
   .act-btn { width: 58px; height: 58px; border-radius: 9999px; font-size: 22px; background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); box-shadow: 0 4px 14px rgba(0,0,0,0.35); transition: transform .08s ease, background .15s ease; }
   .act-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.25); }
+  /* 手机动作键：小图标（嗅探/梳理/互动/潜行/召唤）与大扑击键 */
+  .act-btn-sm { width: 46px; height: 46px; border-radius: 9999px; font-size: 17px; background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); box-shadow: 0 4px 14px rgba(0,0,0,0.35); transition: transform .08s ease, background .15s ease; }
+  .act-btn-sm:active { transform: scale(0.92); background: rgba(255,255,255,0.25); }
+  .act-btn-big { width: 78px; height: 78px; border-radius: 9999px; font-size: 34px; background: linear-gradient(160deg, rgba(255,120,80,0.55), rgba(220,60,40,0.5)); border: 2px solid rgba(255,150,110,0.6); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); box-shadow: 0 6px 20px rgba(220,60,40,0.45); transition: transform .08s ease, background .15s ease; }
+  .act-btn-big:active { transform: scale(0.9); background: rgba(255,140,100,0.7); }
+  /* 互动键：最常用，左上角突出（蓝绿色高亮，比普通键大） */
+  .act-btn-interact { width: 66px; height: 66px; border-radius: 9999px; font-size: 28px; background: linear-gradient(160deg, rgba(90,200,160,0.55), rgba(40,150,190,0.5)); border: 2px solid rgba(140,230,200,0.65); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); box-shadow: 0 6px 18px rgba(60,180,180,0.45); transition: transform .08s ease, background .15s ease; }
+  .act-btn-interact:active { transform: scale(0.9); background: rgba(120,220,190,0.7); }
   #btn-sneak { width: auto; height: 38px; padding: 0 14px; font-size: 12px; border-radius: 9999px; gap: 6px; }
   #btn-sneak.active { background: rgba(52,211,153,0.4); border-color: #34d399; color: #d1fae5; }
   .cat-btn { padding: 6px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: all .12s ease; white-space: nowrap; }
@@ -72,20 +80,20 @@
 
 <!-- ============================== 顶部 HUD ============================== -->
 <div class="fixed top-0 inset-x-0 z-20 flex items-start gap-2 p-2 pointer-events-none">
-  <div class="hud-panel flex items-center gap-3 px-3 py-2 rounded-2xl">
+  <div id="hud-left" class="hud-panel flex items-center gap-2 px-2.5 py-2 rounded-2xl">
     <div class="flex flex-col leading-tight">
       <span id="time-label" class="text-[12px] font-bold text-white drop-shadow">☀️ 08:00 · 第 1 天</span>
-      <span id="weather-label" class="text-[11px] font-medium text-amber-200">☀️ 晴朗</span>
-      <span id="zone-label" class="text-[10px] font-medium text-emerald-300">⛩ 荒野草原</span>
+      <span id="weather-label" class="hide-narrow text-[11px] font-medium text-amber-200">☀️ 晴朗</span>
+      <span id="zone-label" class="hide-narrow text-[10px] font-medium text-emerald-300">⛩ 荒野草原</span>
     </div>
-    <div class="w-px h-9 bg-white/15"></div>
+    <div class="w-px h-9 bg-white/15 hide-narrow"></div>
     <div class="flex flex-col items-center">
       <canvas id="compass" width="76" height="76" style="width:46px;height:46px"></canvas>
-      <span class="text-[8px] uppercase tracking-[0.2em] text-white/50 mt-0.5" data-i18n="ui.hud.compass">本能</span>
+      <span class="hide-narrow text-[8px] uppercase tracking-[0.2em] text-white/50 mt-0.5" data-i18n="ui.hud.compass">本能</span>
     </div>
   </div>
 
-  <div class="hud-panel flex-1 max-w-2xl px-3 py-2 rounded-2xl grid grid-cols-5 gap-x-3 gap-y-1">
+  <div id="hud-meters" class="hud-panel flex-1 max-w-2xl px-2.5 py-1.5 rounded-2xl grid grid-cols-5 gap-x-2 gap-y-1">
     <div>
       <div class="meter"><span class="meter-icon">❤️</span><div class="meter-track"><span id="m-hp" class="meter-fill" style="background:linear-gradient(90deg,#fb7185,#ef4444)"></span></div></div>
       <div class="meter-label" data-i18n="ui.meter.hp">生命</div>
@@ -120,16 +128,48 @@
     </div>
   </div>
 
-  <div class="flex flex-row items-center gap-1.5 pointer-events-auto">
-    <button id="btn-growth" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-amber-500/30 transition" title="成长与技能" data-i18n-title="ui.btn.growth">📈</button>
-    <button id="btn-guide" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="生存指南 (G)" data-i18n-title="ui.btn.guide">📖</button>
-    <button id="btn-inv" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition relative" title="背包 (I)" data-i18n-title="ui.btn.inv">🎒<span id="inv-badge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 items-center justify-center rounded-full bg-amber-500 text-black text-[10px] font-bold"></span></button>
-    <button id="btn-friends" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="猫朋友 (B)" data-i18n-title="ui.btn.friends">🐈</button>
-    <button id="btn-sound" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="开关音效" data-i18n-title="ui.btn.sound">🔊</button>
-    <button id="btn-reset" class="hud-panel w-9 h-9 rounded-xl text-[13px] hover:bg-rose-500/30 transition" title="开始新游戏" data-i18n-title="ui.btn.reset">🆕</button>
-    <button id="btn-lang" class="hud-panel h-9 rounded-xl px-2 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/30 transition" title="语言 / Language">🌐 中文</button>
+  <div class="flex flex-row items-center gap-1.5 pointer-events-auto relative">
+    <!-- 宽屏（≥768px）：按钮横排显示 -->
+    <div id="hud-btns" class="flex flex-row items-center gap-1.5">
+      <button id="btn-growth" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-amber-500/30 transition" title="成长与技能" data-i18n-title="ui.btn.growth">📈</button>
+      <button id="btn-guide" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="生存指南 (G)" data-i18n-title="ui.btn.guide">📖</button>
+      <button id="btn-inv" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition relative" title="背包 (I)" data-i18n-title="ui.btn.inv">🎒<span id="inv-badge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 items-center justify-center rounded-full bg-amber-500 text-black text-[10px] font-bold"></span></button>
+      <button id="btn-friends" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="猫朋友 (B)" data-i18n-title="ui.btn.friends">🐈</button>
+      <button id="btn-sound" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="开关音效" data-i18n-title="ui.btn.sound">🔊</button>
+      <button id="btn-reset" class="hud-panel w-9 h-9 rounded-xl text-[13px] hover:bg-rose-500/30 transition" title="开始新游戏" data-i18n-title="ui.btn.reset">🆕</button>
+      <button id="btn-lang" class="hud-panel h-9 rounded-xl px-2 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/30 transition" title="语言 / Language">🌐 English</button>
+    </div>
+    <!-- 窄屏（<768px）：收进 ☰ 下拉菜单 -->
+    <button id="btn-more" class="hud-panel w-9 h-9 rounded-xl text-[15px] hover:bg-white/10 transition" title="更多选项">☰</button>
   </div>
 </div>
+
+<!-- 窄屏下拉菜单（按钮由 JS 移入） -->
+<div id="more-menu" class="hidden fixed right-2 top-14 z-40 flex-col items-stretch gap-1 p-2 rounded-2xl bg-[#12151f]/95 backdrop-blur-md border border-white/10 shadow-xl"></div>
+
+<style>
+  /* 响应式 HUD：断点统一为 768px（与 JS matchMedia 一致，不依赖 Tailwind 响应式生成） */
+  @media (max-width: 767px) {
+    #hud-btns { display: none !important; }
+    #btn-more { display: flex !important; }
+    /* 手机窄屏：压缩左侧时间/天区，状态条改为 3 列紧凑显示 */
+    #hud-left { gap: 2px !important; padding: 4px 6px !important; }
+    #hud-left .hide-narrow { display: none !important; }
+    #compass { width: 30px !important; height: 30px !important; }
+    #hud-meters { grid-template-columns: repeat(3, minmax(0,1fr)) !important; gap-x: 3px !important; gap-y: 1px !important; padding: 4px 6px !important; }
+    #hud-meters .col-span-5 { grid-column: span 3 / span 3 !important; }
+    #hud-meters .meter-track { height: 4px !important; }
+    #hud-meters .meter-icon { font-size: 9px !important; }
+    #hud-meters .meter-label { font-size: 8px !important; }
+    #hud-meters .meter { gap: 2px !important; }
+    /* 手机：日志文字缩小、面板更窄更透明，不遮挡主界面 */
+    #log { top: 76px !important; left: 8px !important; width: 190px !important; max-width: 55vw !important; }
+    #log .log-toast { font-size: 10px !important; padding: 2px 7px !important; line-height: 1.35 !important; opacity: 0.92 !important; }
+  }
+  @media (min-width: 768px) {
+    #btn-more { display: none !important; }
+  }
+</style>
 
 <!-- 事件日志 -->
 <div id="log" class="fixed left-3 top-[96px] z-20 w-72 max-w-[82vw] space-y-1.5 pointer-events-none"></div>
@@ -142,17 +182,18 @@
 </div>
 
 <!-- ============================ 触屏控制 =========================== -->
-<div id="touch-ui" class="hidden fixed inset-x-0 bottom-0 z-20 pointer-events-none">
+<div id="touch-ui" class="hidden fixed inset-0 z-20 pointer-events-none">
   <div id="joystick" class="pointer-events-auto absolute left-5 bottom-7 w-28 h-28 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm" style="touch-action:none">
     <div id="joystick-knob" class="absolute left-1/2 top-1/2 -ml-6 -mt-6 w-12 h-12 rounded-full bg-white/30 border border-white/40" style="transition:transform .04s linear"></div>
   </div>
-  <div class="absolute right-4 bottom-7 grid grid-cols-2 gap-2 pointer-events-auto">
-    <button id="btn-pounce" class="act-btn" title="扑击" data-i18n-title="ui.touch.pounce">⚔️</button>
-    <button id="btn-sniff" class="act-btn" title="嗅探" data-i18n-title="ui.touch.sniff">👃</button>
-    <button id="btn-groom" class="act-btn" title="梳理" data-i18n-title="ui.touch.groom">✨</button>
-    <button id="btn-interact" class="act-btn" title="互动" data-i18n-title="ui.touch.interact">🤝</button>
-    <button id="btn-sneak" class="act-btn col-span-2 justify-center" title="切换潜行" data-i18n-title="ui.touch.sneakTitle" data-i18n="ui.touch.sneak">🦎 潜行</button>
-    <button id="btn-summon" class="act-btn col-span-2 justify-center !w-auto !h-9" title="召唤伙伴猫（R）" data-i18n-title="ui.touch.summonTitle" data-i18n="ui.touch.summon">📣 召唤伙伴</button>
+  <!-- 右侧动作键列（从下往上）：扑击→互动→嗅探→梳理→潜行→召唤，方便右手拇指 -->
+  <div class="pointer-events-auto absolute right-3 bottom-6 flex flex-col items-center gap-2">
+    <button id="btn-summon" class="act-btn-sm" title="召唤伙伴猫（R）" data-i18n-title="ui.touch.summonTitle">📣</button>
+    <button id="btn-sneak" class="act-btn-sm" title="切换潜行" data-i18n-title="ui.touch.sneakTitle">🦎</button>
+    <button id="btn-groom" class="act-btn-sm" title="梳理" data-i18n-title="ui.touch.groom">🧼</button>
+    <button id="btn-sniff" class="act-btn-sm" title="嗅探" data-i18n-title="ui.touch.sniff">👃</button>
+    <button id="btn-interact" class="act-btn-interact" title="互动" data-i18n-title="ui.touch.interact">🖐️</button>
+    <button id="btn-pounce" class="act-btn-big" title="扑击" data-i18n-title="ui.touch.pounce">⚔️</button>
   </div>
 </div>
 
