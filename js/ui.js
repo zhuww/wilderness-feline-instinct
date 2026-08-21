@@ -350,11 +350,19 @@
     zoomies: 'text-pink-300',
   };
 
+  /* 窄屏检测（手机）：日志更少、更短，避免遮挡主界面 */
+  function isNarrowScreen() {
+    const mq = window.matchMedia && window.matchMedia('(max-width: 767px)');
+    return mq ? mq.matches : window.innerWidth <= 767;
+  }
+
   function log(msg, kind) {
     const box = $('log');
     if (!box) return;
     kind = kind || 'info';
-    while (box.children.length >= 6) box.removeChild(box.children[0]);
+    const narrow = isNarrowScreen();
+    /* 手机：最多 3 条，桌面 6 条 */
+    while (box.children.length >= (narrow ? 3 : 6)) box.removeChild(box.children[0]);
     const d = document.createElement('div');
     d.className =
       'log-toast px-3 py-1.5 rounded-lg text-[12.5px] leading-snug shadow-lg backdrop-blur-md ' +
@@ -362,13 +370,12 @@
       (kind === 'danger' || kind === 'combat' ? ' bg-rose-950/40 border border-rose-500/30' : ' bg-black/35 border border-white/10');
     d.textContent = msg;
     box.appendChild(d);
-    /* 单一定时器（低26）：4200ms 后一次性淡出并移除，
-       内部不再嵌套第二个 setTimeout */
+    /* 单一定时器：手机 2600ms、桌面 4200ms 后一次性淡出并移除 */
     setTimeout(() => {
       d.style.opacity = '0';
       d.style.transform = 'translateX(-8px)';
       if (d.parentNode) d.parentNode.removeChild(d);
-    }, 4200);
+    }, narrow ? 2600 : 4200);
   }
 
   /* ------------------------------------------------------------- modals */
@@ -416,7 +423,8 @@
     const p = Game.entities.player;
     if (!p || Game.ui.modalOpen) { writeHidden(el, true); return; }
     const cam = Game.state.cam;
-    let best = null, bd = 120 * 120;
+    /* 猫互动菜单：玩家需主动靠近（60px 内）才显示，避免挡在眼前 */
+    let best = null, bd = 60 * 60;
     for (const c of Game.entities.companions) {
       const d = U.dist2(p.x, p.y, c.x, c.y);
       if (d < bd) { bd = d; best = c; }
@@ -771,8 +779,34 @@
   }
 
   /* --------------------------------------------------------------- init */
+  /* 窄屏（<768px）：右上角功能按钮收进 ☰ 下拉菜单，方便手机点击（断点与 CSS 媒体查询一致） */
+  let narrowHud = false;
+  function applyResponsiveHud() {
+    const mq = window.matchMedia && window.matchMedia('(max-width: 767px)');
+    narrowHud = mq ? mq.matches : window.innerWidth <= 767;
+    const row = $('hud-btns');
+    const menu = $('more-menu');
+    const more = $('btn-more');
+    if (!row || !menu) return;
+    if (narrowHud) {
+      /* 按钮移入下拉菜单 */
+      while (row.firstChild) menu.appendChild(row.firstChild);
+      if (more) more.classList.remove('hidden');
+    } else {
+      /* 按钮移回横排行 */
+      while (menu.firstChild) row.appendChild(menu.firstChild);
+      if (more) more.classList.add('hidden');
+      menu.classList.add('hidden');
+    }
+  }
+  function toggleMoreMenu() {
+    const menu = $('more-menu');
+    if (!menu) return;
+    menu.classList.toggle('hidden');
+  }
+
   function init() {
-    /* top buttons */
+    /* 顶部按钮（事件绑定后按钮可能被移入下拉菜单，事件保留） */
     const wire = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
     wire('btn-guide', () => showModal('modal-guide'));
     wire('btn-inv', () => showModal('modal-inv'));
@@ -848,6 +882,19 @@
       });
     }
     initTouch();
+    /* 窄屏响应式：右上角按钮 ↔ ☰ 下拉菜单 */
+    applyResponsiveHud();
+    wire('btn-more', toggleMoreMenu);
+    /* 点菜单内按钮后收起菜单 */
+    const moreMenu = $('more-menu');
+    if (moreMenu) {
+      moreMenu.addEventListener('click', () => { if (narrowHud) moreMenu.classList.add('hidden'); });
+    }
+    const onResize = () => { applyResponsiveHud(); };
+    if (window.matchMedia) {
+      try { window.matchMedia('(max-width: 767px)').addEventListener('change', onResize); } catch (e) { /* older API */ }
+    }
+    window.addEventListener('resize', onResize);
     updateHUD();
   }
 
