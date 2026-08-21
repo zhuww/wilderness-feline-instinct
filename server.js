@@ -94,8 +94,9 @@ function tryListen(i) {
       process.exit(1);
     }
   });
-  srv.listen(p, '127.0.0.1', () => {
-    console.log('READY http://127.0.0.1:' + p + '  (root: ' + root + ')');
+  srv.listen(p, '0.0.0.0', () => {
+    /* 监听所有网卡：本机 127.0.0.1 与局域网 IP（如 192.168.1.10）均可访问，方便手机测试 */
+    console.log('READY http://127.0.0.1:' + p + ' / LAN http://<本机IP>:' + p + '  (root: ' + root + ')');
   });
 }
 tryListen(0);
